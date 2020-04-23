@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Baraja;
 
 
+use Tracy\Debugger;
+
 final class ServiceMethodInvoker
 {
 	/** @var mixed[] */
@@ -16,6 +18,14 @@ final class ServiceMethodInvoker
 		'array' => [],
 		'null' => null,
 	];
+
+
+	public function __construct()
+	{
+		if (\class_exists(Debugger::class) === true) {
+			Debugger::getBlueScreen()->addPanel([BlueScreen::class, 'render']);
+		}
+	}
 
 
 	/**
@@ -57,16 +67,15 @@ final class ServiceMethodInvoker
 					} catch (\Throwable $e) {
 					}
 				} else {
-					RuntimeInvokeException::parameterDoesNotSet(
-						$service,
-						$parameter->getName(),
-						$parameter->getPosition(),
-						$methodName ?? ''
-					);
+					RuntimeInvokeException::parameterDoesNotSet($service, $parameter->getName(), $parameter->getPosition(), $methodName ?? '');
 				}
 			}
+		} catch (RuntimeInvokeException $e) {
+			$e->setMethod($methodName);
+			$e->setParams($params);
+			throw $e;
 		} catch (\ReflectionException $e) {
-			RuntimeInvokeException::reflectionException($e);
+			throw new \RuntimeException($e->getMessage(), $e->getCode(), $e);
 		}
 
 		if ($ref !== null) {
