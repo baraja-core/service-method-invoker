@@ -22,6 +22,10 @@ final class BlueScreen
 	 */
 	public static function render(?\Throwable $e): ?array
 	{
+		if ($e !== null && !$e instanceof RuntimeInvokeException && ($previous = $e->getPrevious()) !== null) {
+			$e = $previous;
+		}
+
 		if ($e instanceof RuntimeInvokeException && ($service = $e->getService()) !== null) {
 			$file = null;
 			$startLine = null;
