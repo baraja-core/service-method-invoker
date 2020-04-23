@@ -39,7 +39,7 @@ final class ServiceMethodInvoker
 	 * @param string $methodName
 	 * @param mixed[] $params
 	 * @param bool $dataMustBeArray
-	 * @return mixed|null
+	 * @return mixed|null (in case of called method return void, invoke logic return null)
 	 */
 	public function invoke(Service $service, string $methodName, array $params, bool $dataMustBeArray = false)
 	{
@@ -78,11 +78,7 @@ final class ServiceMethodInvoker
 			throw new \RuntimeException($e->getMessage(), $e->getCode(), $e);
 		}
 
-		if ($ref !== null) {
-			return $ref->invokeArgs($service, $args);
-		}
-
-		return null;
+		return $ref->invokeArgs($service, $args);
 	}
 
 
