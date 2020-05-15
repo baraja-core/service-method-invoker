@@ -99,6 +99,56 @@ final class RuntimeInvokeException extends \RuntimeException
 
 
 	/**
+	 * @param Service $service
+	 * @param string $className
+	 */
+	public static function entityClassDoesNotExist(Service $service, string $className): void
+	{
+		throw new self($service, $service . ': Entity class "' . $className . '" does not exist.');
+	}
+
+
+	/**
+	 * @param Service $service
+	 * @param string $className
+	 * @param string[] $stackTrace
+	 */
+	public static function circularDependency(Service $service, string $className, array $stackTrace): void
+	{
+		throw new self(
+			$service, $service . ': Circular dependence has been discovered, because entity "' . $className . '" already was instanced.'
+			. "\n" . 'Current stack trace: ' . implode(', ', $stackTrace)
+		);
+	}
+
+
+	/**
+	 * @param Service $service
+	 * @param string $type
+	 */
+	public static function propertyTypeIsNotSupported(Service $service, string $type): void
+	{
+		throw new self($service, $service . ': Property type "' . $type . '" is not supported. Did you mean some scalar type or entity?');
+	}
+
+
+	/**
+	 * @param Service $service
+	 * @param string $entityName
+	 * @param string $propertyName
+	 * @param bool $allowsScalar
+	 * @param string $requiredType
+	 */
+	public static function propertyIsRequired(Service $service, string $entityName, string $propertyName, bool $allowsScalar, string $requiredType): void
+	{
+		throw new self(
+			$service, $service . ': Property "' . $propertyName . '" of entity "' . $entityName . '" is required. '
+			. 'Please set some' . ($allowsScalar === true ? ' scalar' : '') . ' value type of "' . $requiredType . '".'
+		);
+	}
+
+
+	/**
 	 * @return Service|null
 	 */
 	public function getService(): ?Service

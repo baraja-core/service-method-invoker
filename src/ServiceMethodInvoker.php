@@ -9,8 +9,7 @@ use Tracy\Debugger;
 
 final class ServiceMethodInvoker
 {
-	/** @var mixed[] */
-	private static $emptyTypeMapper = [
+	private const EMPTY_TYPE_MAPPER = [
 		'string' => '',
 		'bool' => false,
 		'int' => 0,
@@ -18,6 +17,9 @@ final class ServiceMethodInvoker
 		'array' => [],
 		'null' => null,
 	];
+
+	/** @var bool[] (entityName => true) */
+	private $recursionChecker = [];
 
 
 	public function __construct()
@@ -47,27 +49,27 @@ final class ServiceMethodInvoker
 		$args = [];
 
 		try {
-			foreach (($ref = new \ReflectionMethod($service, $methodName))->getParameters() as $parameter) {
-				$pName = $parameter->getName();
-				if ($dataMustBeArray === true && $pName === 'data') {
-					if ((($type = $parameter->getType()) !== null && ($typeName = $type->getName()) !== 'array') || $type === null) {
-						RuntimeInvokeException::propertyDataMustBeArray($service, $type === null ? null : $typeName ?? '');
-					}
+			$parameters = ($ref = new \ReflectionMethod($service, $methodName))->getParameters();
+			if (isset($parameters[0]) === true) {
+				$entityType = ($type = $parameters[0]->getType()) !== null ? $type->getName() : null;
+			} else {
+				$entityType = null;
+			}
+			if ($entityType !== null && \class_exists($entityType) === true) { // entity input
+				$this->recursionChecker = [];
+				$args[$parameters[0]->getName()] = $this->hydrateDataToObject($service, $entityType, $params, $methodName);
+			} else { // regular input by scalar parameters
+				foreach ($parameters as $parameter) {
+					$pName = $parameter->getName();
+					if ($dataMustBeArray === true && $pName === 'data') {
+						if ((($type = $parameter->getType()) !== null && ($typeName = $type->getName()) !== 'array') || $type === null) {
+							RuntimeInvokeException::propertyDataMustBeArray($service, $type === null ? null : $typeName ?? '');
+						}
 
-					$args[$pName] = $params;
-				} elseif (isset($params[$pName]) === true) {
-					if ($params[$pName]) {
-						$args[$pName] = $this->fixType($params[$pName], (($type = $parameter->getType()) !== null) ? $type : null);
-					} elseif (($type = $parameter->getType()) !== null) {
-						$args[$pName] = $this->returnEmptyValue($service, $pName, $type);
+						$args[$pName] = $params;
+					} else {
+						$args[$pName] = $this->processParameterValue($service, $parameter, $params, $methodName);
 					}
-				} elseif ($parameter->isOptional() === true && $parameter->isDefaultValueAvailable() === true) {
-					try {
-						$args[$pName] = $parameter->getDefaultValue();
-					} catch (\Throwable $e) {
-					}
-				} else {
-					RuntimeInvokeException::parameterDoesNotSet($service, $parameter->getName(), $parameter->getPosition(), $methodName ?? '');
 				}
 			}
 		} catch (RuntimeInvokeException $e) {
@@ -136,11 +138,123 @@ final class ServiceMethodInvoker
 			RuntimeInvokeException::parameterMustBeObject($service, $parameter, $name);
 		}
 
-		if (isset(self::$emptyTypeMapper[$name]) === true) {
-			return self::$emptyTypeMapper[$name];
+		if (isset(self::EMPTY_TYPE_MAPPER[$name]) === true) {
+			return self::EMPTY_TYPE_MAPPER[$name];
 		}
 
 		RuntimeInvokeException::canNotCreateEmptyValueByType($service, $parameter, $name);
+
+		return null;
+	}
+
+
+	/**
+	 * @param Service $service
+	 * @param string $className
+	 * @param mixed[] $params
+	 * @param string|null $methodName
+	 * @return object
+	 */
+	private function hydrateDataToObject(Service $service, string $className, array $params, ?string $methodName = null)
+	{
+		if (\class_exists($className) === false) {
+			RuntimeInvokeException::entityClassDoesNotExist($service, $className);
+		}
+		if (isset($this->recursionChecker[$className]) === true) {
+			RuntimeInvokeException::circularDependency($service, $className, array_keys($this->recursionChecker));
+		}
+
+		$this->recursionChecker[$className] = true;
+
+		try {
+			$ref = new \ReflectionClass($className);
+		} catch (\ReflectionException $e) {
+			throw new \RuntimeException('Can not reflection class "' . $className . '": ' . $e->getMessage());
+		}
+
+		if (($constructor = $ref->getConstructor()) !== null) {
+			$args = [];
+
+			foreach ($constructor->getParameters() as $parameter) {
+				$args[$parameter->getName()] = $this->processParameterValue($service, $parameter, $params, $methodName);
+			}
+
+			$instance = $ref->newInstanceArgs($args);
+		} else {
+			$instance = $ref->newInstanceArgs([]);
+		}
+
+		foreach ($ref->getProperties() as $property) {
+			if (isset($params[$propertyName = $property->getName()]) === true) {
+				$property->setValue($instance, $params[$propertyName]);
+				continue;
+			}
+			if ($property->getValue($instance) !== null) {
+				// TODO: Validate if current type match
+				continue;
+			}
+
+			if (preg_match('/\@var\s+(\S+)/', $property->getDocComment() ?? '', $parser)) {
+				$requiredType = $parser[1] ?: 'null';
+			} else {
+				$requiredType = 'null';
+			}
+
+			$allowsScalar = false;
+			$entityClass = null;
+
+			foreach (explode('|', $requiredType) as $type) {
+				if ($type === 'null') { // allows null
+					continue 2;
+				}
+				if (isset(self::EMPTY_TYPE_MAPPER[$type]) === true) {
+					$allowsScalar = true;
+				} elseif (\class_exists($type) === true) {
+					$entityClass = $type;
+				} else {
+					RuntimeInvokeException::propertyTypeIsNotSupported($service, $type);
+				}
+			}
+
+			if ($entityClass !== null) {
+				$property->setValue($instance, $this->hydrateDataToObject($service, (string) $entityClass, $params, $methodName));
+				continue;
+			}
+
+			RuntimeInvokeException::propertyIsRequired($service, (string) $entityClass, $propertyName, $allowsScalar, $requiredType);
+		}
+
+		return $instance;
+	}
+
+
+	/**
+	 * @param Service $service
+	 * @param \ReflectionParameter $parameter
+	 * @param mixed[] $params
+	 * @param string|null $methodName
+	 * @return mixed|null
+	 */
+	private function processParameterValue(Service $service, \ReflectionParameter $parameter, array $params, ?string $methodName = null)
+	{
+		if (($parameterType = ($type = $parameter->getType()) !== null ? $type->getName() : null) !== null && \class_exists($parameterType) === true) {
+			return $this->hydrateDataToObject($service, $parameterType, $params, $methodName);
+		}
+		if (isset($params[$pName = $parameter->getName()]) === true) {
+			if ($params[$pName]) {
+				return $this->fixType($params[$pName], (($type = $parameter->getType()) !== null) ? $type : null);
+			}
+			if (($type = $parameter->getType()) !== null) {
+				return $this->returnEmptyValue($service, $pName, $type);
+			}
+		} elseif ($parameter->isOptional() === true && $parameter->isDefaultValueAvailable() === true) {
+			try {
+				return $parameter->getDefaultValue();
+			} catch (\Throwable $e) {
+			}
+		}
+
+		RuntimeInvokeException::parameterDoesNotSet($service, $parameter->getName(), $parameter->getPosition(), $methodName ?? '');
 
 		return null;
 	}
