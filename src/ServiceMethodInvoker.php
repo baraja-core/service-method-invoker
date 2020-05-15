@@ -179,7 +179,7 @@ final class ServiceMethodInvoker
 				$args[$parameter->getName()] = $this->processParameterValue($service, $parameter, $params, $methodName);
 			}
 
-			$instance = $ref->newInstanceArgs($args);
+			$instance = $ref->newInstanceArgs(array_values($args));
 		} else {
 			$instance = $ref->newInstanceArgs([]);
 		}
