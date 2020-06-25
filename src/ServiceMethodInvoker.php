@@ -252,6 +252,8 @@ final class ServiceMethodInvoker
 				return $parameter->getDefaultValue();
 			} catch (\Throwable $e) {
 			}
+		} elseif ($parameter->allowsNull() === true && array_key_exists($pName, $params) && $params[$pName] === null) {
+			return null;
 		}
 
 		RuntimeInvokeException::parameterDoesNotSet($service, $parameter->getName(), $parameter->getPosition(), $methodName ?? '');
