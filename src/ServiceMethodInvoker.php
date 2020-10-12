@@ -19,7 +19,7 @@ final class ServiceMethodInvoker
 	];
 
 	/** @var bool[] (entityName => true) */
-	private $recursionChecker = [];
+	private $recursionDetector = [];
 
 
 	public function __construct()
@@ -53,7 +53,7 @@ final class ServiceMethodInvoker
 				$entityType = null;
 			}
 			if ($entityType !== null && \class_exists($entityType) === true) { // entity input
-				$this->recursionChecker = [];
+				$this->recursionDetector = [];
 				$args[$parameters[0]->getName()] = $this->hydrateDataToObject($service, $entityType, $params, $methodName);
 			} else { // regular input by scalar parameters
 				foreach ($parameters as $parameter) {
@@ -143,11 +143,11 @@ final class ServiceMethodInvoker
 		if (\class_exists($className) === false) {
 			RuntimeInvokeException::entityClassDoesNotExist($service, $className);
 		}
-		if (isset($this->recursionChecker[$className]) === true) {
-			RuntimeInvokeException::circularDependency($service, $className, array_keys($this->recursionChecker));
+		if (isset($this->recursionDetector[$className]) === true) {
+			RuntimeInvokeException::circularDependency($service, $className, array_keys($this->recursionDetector));
 		}
 
-		$this->recursionChecker[$className] = true;
+		$this->recursionDetector[$className] = true;
 
 		try {
 			$ref = new \ReflectionClass($className);
