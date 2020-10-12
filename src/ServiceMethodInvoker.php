@@ -37,10 +37,7 @@ final class ServiceMethodInvoker
 	 *
 	 * Before given method is invoked, this internal logic check all input parameters and validate types.
 	 *
-	 * @param Service $service
-	 * @param string $methodName
 	 * @param mixed[] $params
-	 * @param bool $dataMustBeArray
 	 * @return mixed|null (in case of called method return void, invoke logic return null)
 	 */
 	public function invoke(Service $service, string $methodName, array $params, bool $dataMustBeArray = false)
@@ -65,7 +62,6 @@ final class ServiceMethodInvoker
 						if ((($type = $parameter->getType()) !== null && ($typeName = $type->getName()) !== 'array') || $type === null) {
 							RuntimeInvokeException::propertyDataMustBeArray($service, $type === null ? null : $typeName ?? '');
 						}
-
 						$args[$pName] = $params;
 					} else {
 						$args[$pName] = $this->processParameterValue($service, $parameter, $params, $methodName);
@@ -93,7 +89,6 @@ final class ServiceMethodInvoker
 	 * 4. Other -> keep original
 	 *
 	 * @param mixed $haystack
-	 * @param \ReflectionType|null $type
 	 * @return mixed
 	 */
 	private function fixType($haystack, ?\ReflectionType $type)
@@ -101,19 +96,15 @@ final class ServiceMethodInvoker
 		if ($type === null) {
 			return $haystack;
 		}
-
 		if (!$haystack && $type->allowsNull()) {
 			return null;
 		}
-
 		if ($type->getName() === 'bool') {
 			return \in_array(strtolower((string) $haystack), ['1', 'true', 'yes'], true) === true;
 		}
-
 		if ($type->getName() === 'int') {
 			return (int) $haystack;
 		}
-
 		if ($type->getName() === 'float') {
 			return (float) $haystack;
 		}
@@ -123,9 +114,6 @@ final class ServiceMethodInvoker
 
 
 	/**
-	 * @param Service $service
-	 * @param string $parameter
-	 * @param \ReflectionType $type
 	 * @return mixed|null
 	 */
 	private function returnEmptyValue(Service $service, string $parameter, \ReflectionType $type)
@@ -133,11 +121,9 @@ final class ServiceMethodInvoker
 		if ($type->allowsNull() === true) {
 			return null;
 		}
-
 		if (strpos($name = $type->getName(), '/') !== false || class_exists($name) === true) {
 			RuntimeInvokeException::parameterMustBeObject($service, $parameter, $name);
 		}
-
 		if (isset(self::EMPTY_TYPE_MAPPER[$name]) === true) {
 			return self::EMPTY_TYPE_MAPPER[$name];
 		}
@@ -149,10 +135,7 @@ final class ServiceMethodInvoker
 
 
 	/**
-	 * @param Service $service
-	 * @param string $className
 	 * @param mixed[] $params
-	 * @param string|null $methodName
 	 * @return object
 	 */
 	private function hydrateDataToObject(Service $service, string $className, array $params, ?string $methodName = null)
@@ -174,7 +157,6 @@ final class ServiceMethodInvoker
 
 		if (($constructor = $ref->getConstructor()) !== null) {
 			$args = [];
-
 			foreach ($constructor->getParameters() as $parameter) {
 				$args[$parameter->getName()] = $this->processParameterValue($service, $parameter, $params, $methodName);
 			}
@@ -193,7 +175,6 @@ final class ServiceMethodInvoker
 				// TODO: Validate if current type match
 				continue;
 			}
-
 			if (preg_match('/\@var\s+(\S+)/', $property->getDocComment() ?? '', $parser)) {
 				$requiredType = $parser[1] ?: 'null';
 			} else {
@@ -202,7 +183,6 @@ final class ServiceMethodInvoker
 
 			$allowsScalar = false;
 			$entityClass = null;
-
 			foreach (explode('|', $requiredType) as $type) {
 				if ($type === 'null') { // allows null
 					continue 2;
@@ -215,7 +195,6 @@ final class ServiceMethodInvoker
 					RuntimeInvokeException::propertyTypeIsNotSupported($service, $type);
 				}
 			}
-
 			if ($entityClass !== null) {
 				$property->setValue($instance, $this->hydrateDataToObject($service, (string) $entityClass, $params, $methodName));
 				continue;
@@ -229,10 +208,7 @@ final class ServiceMethodInvoker
 
 
 	/**
-	 * @param Service $service
-	 * @param \ReflectionParameter $parameter
 	 * @param mixed[] $params
-	 * @param string|null $methodName
 	 * @return mixed|null
 	 */
 	private function processParameterValue(Service $service, \ReflectionParameter $parameter, array $params, ?string $methodName = null)

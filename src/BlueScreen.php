@@ -9,6 +9,7 @@ use Tracy\Dumper;
 
 final class BlueScreen
 {
+
 	/** @throws \Error */
 	public function __construct()
 	{
@@ -17,7 +18,6 @@ final class BlueScreen
 
 
 	/**
-	 * @param \Throwable|null $e
 	 * @return string[]|null
 	 */
 	public static function render(?\Throwable $e): ?array
@@ -25,7 +25,6 @@ final class BlueScreen
 		if ($e !== null && !$e instanceof RuntimeInvokeException && ($previous = $e->getPrevious()) !== null) {
 			$e = $previous;
 		}
-
 		if ($e instanceof RuntimeInvokeException && ($service = $e->getService()) !== null) {
 			$file = null;
 			$startLine = null;
@@ -39,7 +38,6 @@ final class BlueScreen
 					: $ref->getStartLine();
 			} catch (\ReflectionException $e) {
 			}
-
 			if ($file !== null && $startLine !== null && \is_file($file) === true) {
 				return [
 					'tab' => 'Service Invoker | ' . \get_class($service ?? ''),

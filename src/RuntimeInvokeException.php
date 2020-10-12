@@ -18,11 +18,6 @@ final class RuntimeInvokeException extends \RuntimeException
 	private $params;
 
 
-	/**
-	 * @param Service|null $service
-	 * @param string $message
-	 * @param \Throwable|null $previous
-	 */
 	public function __construct(?Service $service, string $message, ?\Throwable $previous = null)
 	{
 		$this->service = $service;
@@ -30,12 +25,6 @@ final class RuntimeInvokeException extends \RuntimeException
 	}
 
 
-	/**
-	 * @param Service $service
-	 * @param string $parameter
-	 * @param int $position
-	 * @param string $method
-	 */
 	public static function parameterDoesNotSet(Service $service, string $parameter, int $position, string $method): void
 	{
 		$methodParams = '';
@@ -57,10 +46,6 @@ final class RuntimeInvokeException extends \RuntimeException
 	}
 
 
-	/**
-	 * @param Service $service
-	 * @param string|null $type
-	 */
 	public static function propertyDataMustBeArray(Service $service, ?string $type): void
 	{
 		throw new self(
@@ -70,11 +55,6 @@ final class RuntimeInvokeException extends \RuntimeException
 	}
 
 
-	/**
-	 * @param Service $service
-	 * @param string $parameter
-	 * @param string $class
-	 */
 	public static function parameterMustBeObject(Service $service, string $parameter, string $class): void
 	{
 		throw new self(
@@ -84,11 +64,6 @@ final class RuntimeInvokeException extends \RuntimeException
 	}
 
 
-	/**
-	 * @param Service $service
-	 * @param string $parameter
-	 * @param string $typeName
-	 */
 	public static function canNotCreateEmptyValueByType(Service $service, string $parameter, string $typeName): void
 	{
 		throw new self(
@@ -98,10 +73,6 @@ final class RuntimeInvokeException extends \RuntimeException
 	}
 
 
-	/**
-	 * @param Service $service
-	 * @param string $className
-	 */
 	public static function entityClassDoesNotExist(Service $service, string $className): void
 	{
 		throw new self($service, $service . ': Entity class "' . $className . '" does not exist.');
@@ -109,8 +80,6 @@ final class RuntimeInvokeException extends \RuntimeException
 
 
 	/**
-	 * @param Service $service
-	 * @param string $className
 	 * @param string[] $stackTrace
 	 */
 	public static function circularDependency(Service $service, string $className, array $stackTrace): void
@@ -122,23 +91,12 @@ final class RuntimeInvokeException extends \RuntimeException
 	}
 
 
-	/**
-	 * @param Service $service
-	 * @param string $type
-	 */
 	public static function propertyTypeIsNotSupported(Service $service, string $type): void
 	{
 		throw new self($service, $service . ': Property type "' . $type . '" is not supported. Did you mean some scalar type or entity?');
 	}
 
 
-	/**
-	 * @param Service $service
-	 * @param string $entityName
-	 * @param string $propertyName
-	 * @param bool $allowsScalar
-	 * @param string $requiredType
-	 */
 	public static function propertyIsRequired(Service $service, string $entityName, string $propertyName, bool $allowsScalar, string $requiredType): void
 	{
 		throw new self(
@@ -148,28 +106,18 @@ final class RuntimeInvokeException extends \RuntimeException
 	}
 
 
-	/**
-	 * @return Service|null
-	 */
 	public function getService(): ?Service
 	{
 		return $this->service;
 	}
 
 
-	/**
-	 * @return string|null
-	 */
 	public function getMethod(): ?string
 	{
 		return $this->method;
 	}
 
 
-	/**
-	 * @param string|null $method
-	 * @return RuntimeInvokeException
-	 */
 	public function setMethod(?string $method): self
 	{
 		$this->method = $method;
