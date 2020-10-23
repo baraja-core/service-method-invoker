@@ -3,5 +3,7 @@ includes:
 	- vendor/phpstan/phpstan-nette/rules.neon
 
 parameters:
+	checkMissingIterableValueType: false
+	checkGenericClassInNonGenericObjectType: false
 	ignoreErrors:
 		- '#Call to an undefined method ReflectionType::getName\(\).#'
