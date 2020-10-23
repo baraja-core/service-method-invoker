@@ -173,7 +173,7 @@ final class Helpers
 	/**
 	 * Parses PHP code to [class => [alias => class, ...]]
 	 *
-	 * @return string[]
+	 * @return array<string, array<string, string>>
 	 */
 	private static function parseUseStatements(string $code, string $forClass = null): array
 	{
@@ -258,6 +258,9 @@ final class Helpers
 	}
 
 
+	/**
+	 * @param mixed[] $take
+	 */
 	private static function fetch(array &$tokens, $take): ?string
 	{
 		$res = null;
