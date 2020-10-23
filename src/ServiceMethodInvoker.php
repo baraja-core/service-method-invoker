@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Baraja;
 
 
+use Baraja\ServiceMethodInvoker\Helpers;
 use Tracy\Debugger;
 
 final class ServiceMethodInvoker
@@ -189,8 +190,8 @@ final class ServiceMethodInvoker
 				}
 				if (isset(self::EMPTY_TYPE_MAPPER[$type]) === true) {
 					$allowsScalar = true;
-				} elseif (\class_exists($type) === true) {
-					$entityClass = $type;
+				} elseif (\class_exists($tryType = Helpers::resolvePropertyType($property)) === true) {
+					$entityClass = $tryType;
 				} else {
 					RuntimeInvokeException::propertyTypeIsNotSupported($service, $type);
 				}
