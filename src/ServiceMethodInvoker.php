@@ -201,7 +201,7 @@ final class ServiceMethodInvoker
 				continue;
 			}
 
-			RuntimeInvokeException::propertyIsRequired($service, (string) $entityClass, $propertyName, $allowsScalar, $requiredType);
+			RuntimeInvokeException::propertyIsRequired($service, $entityClass ?? $className, $propertyName, $allowsScalar, $requiredType);
 		}
 
 		return $instance;
