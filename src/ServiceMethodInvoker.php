@@ -43,9 +43,7 @@ final class ServiceMethodInvoker
 	 */
 	public function invoke(Service $service, string $methodName, array $params, bool $dataMustBeArray = false)
 	{
-		$ref = null;
 		$args = [];
-
 		try {
 			$parameters = ($ref = new \ReflectionMethod($service, $methodName))->getParameters();
 			if (isset($parameters[0]) === true) {
