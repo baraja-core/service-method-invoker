@@ -20,7 +20,7 @@ final class ServiceMethodInvoker
 	];
 
 	/** @var bool[] (entityName => true) */
-	private $recursionDetector = [];
+	private array $recursionDetector = [];
 
 
 	public function __construct()

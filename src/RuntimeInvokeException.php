@@ -7,15 +7,12 @@ namespace Baraja;
 
 final class RuntimeInvokeException extends \RuntimeException
 {
+	private ?Service $service;
 
-	/** @var Service|null */
-	private $service;
-
-	/** @var string|null */
-	private $method;
+	private ?string $method;
 
 	/** @var mixed[]|null */
-	private $params;
+	private ?array $params;
 
 
 	public function __construct(?Service $service, string $message, ?\Throwable $previous = null)
