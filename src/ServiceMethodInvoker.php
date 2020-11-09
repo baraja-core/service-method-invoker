@@ -171,8 +171,7 @@ final class ServiceMethodInvoker
 				$property->setValue($instance, $params[$propertyName]);
 				continue;
 			}
-			if ($property->getValue($instance) !== null) {
-				// TODO: Validate if current type match
+			if ($property->isInitialized($instance) && $property->getValue($instance) !== null) {
 				continue;
 			}
 			if (preg_match('/\@var\s+(\S+)/', $property->getDocComment() ?: '', $parser)) {
