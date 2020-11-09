@@ -166,6 +166,7 @@ final class ServiceMethodInvoker
 		}
 
 		foreach ($ref->getProperties() as $property) {
+			$property->setAccessible(true);
 			if (isset($params[$propertyName = $property->getName()]) === true) {
 				$property->setValue($instance, $params[$propertyName]);
 				continue;
@@ -174,7 +175,7 @@ final class ServiceMethodInvoker
 				// TODO: Validate if current type match
 				continue;
 			}
-			if (preg_match('/\@var\s+(\S+)/', $property->getDocComment() ?? '', $parser)) {
+			if (preg_match('/\@var\s+(\S+)/', $property->getDocComment() ?: '', $parser)) {
 				$requiredType = $parser[1] ?: 'null';
 			} else {
 				$requiredType = 'null';
