@@ -53,7 +53,7 @@ final class ServiceMethodInvoker
 			}
 			if ($entityType !== null && \class_exists($entityType) === true) { // entity input
 				$this->recursionDetector = [];
-				$args[$parameters[0]->getName()] = $this->hydrateDataToObject($service, $entityType, $params, $methodName);
+				$args[$parameters[0]->getName()] = $this->hydrateDataToObject($service, $entityType, $params[$parameters[0]->getName()] ?? $params, $methodName);
 			} else { // regular input by scalar parameters
 				foreach ($parameters as $parameter) {
 					$pName = $parameter->getName();
@@ -167,7 +167,7 @@ final class ServiceMethodInvoker
 
 		foreach ($ref->getProperties() as $property) {
 			$property->setAccessible(true);
-			if (isset($params[$propertyName = $property->getName()]) === true) {
+			if (isset($params[$propertyName = $property->getName()]) === true && is_scalar($params[$propertyName]) === true) {
 				$property->setValue($instance, $params[$propertyName]);
 				continue;
 			}
@@ -195,7 +195,7 @@ final class ServiceMethodInvoker
 				}
 			}
 			if ($entityClass !== null) {
-				$property->setValue($instance, $this->hydrateDataToObject($service, (string) $entityClass, $params, $methodName));
+				$property->setValue($instance, $this->hydrateDataToObject($service, (string) $entityClass, $params[$propertyName] ?? $params, $methodName));
 				continue;
 			}
 
@@ -212,10 +212,11 @@ final class ServiceMethodInvoker
 	 */
 	private function processParameterValue(Service $service, \ReflectionParameter $parameter, array $params, ?string $methodName = null)
 	{
+		$pName = $parameter->getName();
 		if (($parameterType = ($type = $parameter->getType()) !== null ? $type->getName() : null) !== null && \class_exists($parameterType) === true) {
-			return $this->hydrateDataToObject($service, $parameterType, $params, $methodName);
+			return $this->hydrateDataToObject($service, $parameterType, $params[$pName] ?? $params, $methodName);
 		}
-		if (isset($params[$pName = $parameter->getName()]) === true) {
+		if (isset($params[$pName]) === true) {
 			if ($params[$pName]) {
 				return $this->fixType($params[$pName], (($type = $parameter->getType()) !== null) ? $type : null);
 			}
