@@ -244,10 +244,14 @@ final class ServiceMethodInvoker
 	 */
 	private function hydrateValueToEntity(\ReflectionProperty $property, $instance, $value): void
 	{
-		if (method_exists($instance, $setter = 'set' . $property->getName())) {
-			$instance->$setter($value);
-		} else {
-			$property->setValue($instance, $value);
+		try {
+			if (method_exists($instance, $setter = 'set' . $property->getName())) {
+				$instance->$setter($value);
+			} else {
+				$property->setValue($instance, $value);
+			}
+		} catch (\InvalidArgumentException $e) {
+			throw new \InvalidArgumentException('UserException: ' . $e->getMessage(), $e->getCode(), $e);
 		}
 	}
 }
