@@ -168,7 +168,7 @@ final class ServiceMethodInvoker
 		foreach ($ref->getProperties() as $property) {
 			$property->setAccessible(true);
 			if (isset($params[$propertyName = $property->getName()]) === true && is_scalar($params[$propertyName]) === true) {
-				$property->setValue($instance, $params[$propertyName]);
+				$this->hydrateValueToEntity($property, $instance, $params[$propertyName]);
 				continue;
 			}
 			if ($property->isInitialized($instance) && $property->getValue($instance) !== null) {
@@ -195,7 +195,7 @@ final class ServiceMethodInvoker
 				}
 			}
 			if ($entityClass !== null) {
-				$property->setValue($instance, $this->hydrateDataToObject($service, (string) $entityClass, $params[$propertyName] ?? $params, $methodName));
+				$this->hydrateValueToEntity($property, $instance, $this->hydrateDataToObject($service, (string) $entityClass, $params[$propertyName] ?? $params, $methodName));
 				continue;
 			}
 
@@ -235,5 +235,19 @@ final class ServiceMethodInvoker
 		RuntimeInvokeException::parameterDoesNotSet($service, $parameter->getName(), $parameter->getPosition(), $methodName ?? '');
 
 		return null;
+	}
+
+
+	/**
+	 * @param mixed $instance
+	 * @param mixed $value
+	 */
+	private function hydrateValueToEntity(\ReflectionProperty $property, $instance, $value): void
+	{
+		if (method_exists($instance, $setter = 'set' . $property->getName())) {
+			$instance->$setter($value);
+		} else {
+			$property->setValue($instance, $value);
+		}
 	}
 }
