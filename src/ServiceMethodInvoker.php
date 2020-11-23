@@ -90,10 +90,10 @@ final class ServiceMethodInvoker
 	 * @param mixed $haystack
 	 * @return mixed
 	 */
-	private function fixType($haystack, ?\ReflectionType $type)
+	private function fixType($haystack, ?\ReflectionType $type, bool $allowsNull)
 	{
 		if ($type === null) {
-			return $haystack;
+			return $allowsNull && $haystack === 'null' ? null : $haystack;
 		}
 		if (!$haystack && $type->allowsNull()) {
 			return null;
@@ -108,7 +108,7 @@ final class ServiceMethodInvoker
 			return (float) $haystack;
 		}
 
-		return $haystack;
+		return $allowsNull && $haystack === 'null' ? null : $haystack;
 	}
 
 
@@ -218,7 +218,7 @@ final class ServiceMethodInvoker
 		}
 		if (isset($params[$pName]) === true) {
 			if ($params[$pName]) {
-				return $this->fixType($params[$pName], (($type = $parameter->getType()) !== null) ? $type : null);
+				return $this->fixType($params[$pName], (($type = $parameter->getType()) !== null) ? $type : null, $parameter->allowsNull());
 			}
 			if (($type = $parameter->getType()) !== null) {
 				return $this->returnEmptyValue($service, $pName, $type);
