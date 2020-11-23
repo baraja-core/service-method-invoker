@@ -214,6 +214,15 @@ final class ServiceMethodInvoker
 	{
 		$pName = $parameter->getName();
 		if (($parameterType = ($type = $parameter->getType()) !== null ? $type->getName() : null) !== null && \class_exists($parameterType) === true) {
+			if (isset($params[$pName]) === true) {
+				if ($params[$pName] === 'null' && $parameter->allowsNull() === true) {
+					return null;
+				}
+				if ($params[$pName] instanceof $parameterType) {
+					return $params[$pName];
+				}
+			}
+
 			return $this->hydrateDataToObject($service, $parameterType, $params[$pName] ?? $params, $methodName);
 		}
 		if (isset($params[$pName]) === true) {
