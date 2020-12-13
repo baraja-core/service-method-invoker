@@ -9,3 +9,4 @@ parameters:
 		- '#Call to an undefined method ReflectionType::getName\(\).#'
 		- '#Cannot call method getParentClass\(\) on ReflectionClass\|null.#'
 		- '#Cannot access property \$name on ReflectionClass\|false.#'
+		- '#Cannot access property \$name on ReflectionClass\|null.#'
