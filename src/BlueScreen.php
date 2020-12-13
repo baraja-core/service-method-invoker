@@ -32,16 +32,16 @@ final class BlueScreen
 
 			try {
 				$ref = new \ReflectionClass($service);
-				$file = $ref->getFileName();
+				$file = $ref->getFileName() ?: null;
 				$startLine = ($method = $e->getMethod()) !== null
 					? $ref->getMethod($method)->getStartLine()
 					: $ref->getStartLine();
 			} catch (\ReflectionException $e) {
 			}
-			if ($file !== null && $startLine !== null && \is_file($file) === true) {
+			if ($file !== null && $startLine !== null && \is_file((string) $file) === true) {
 				return [
 					'tab' => 'Service Invoker | ' . \get_class($service ?? ''),
-					'panel' => \Tracy\BlueScreen::highlightPhp(file_get_contents($file), $startLine, 15, $params ?? [])
+					'panel' => \Tracy\BlueScreen::highlightPhp((string) file_get_contents((string) $file), (int) $startLine, 15, $params ?? [])
 						. ($params !== null ? '<p>Params:</p>' . self::renderParamsTable($params) : ''),
 				];
 			}

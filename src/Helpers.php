@@ -50,7 +50,7 @@ final class Helpers
 	/**
 	 * Returns an annotation value.
 	 *
-	 * @param  \ReflectionFunctionAbstract|\ReflectionProperty|\ReflectionClass $ref
+	 * @param \ReflectionFunctionAbstract|\ReflectionProperty|\ReflectionClass $ref
 	 */
 	public static function parseAnnotation(\Reflector $ref, string $name): ?string
 	{
@@ -58,7 +58,7 @@ final class Helpers
 			throw new \RuntimeException('You have to enable phpDoc comments in opcode cache.');
 		}
 		$re = '#[\s*]@' . preg_quote($name, '#') . '(?=\s|$)(?:[ \t]+([^@\s]\S*))?#';
-		if ($ref->getDocComment() && preg_match($re, trim($ref->getDocComment(), '/*'), $m)) {
+		if ($ref->getDocComment() && preg_match($re, trim((string) $ref->getDocComment(), '/*'), $m)) {
 			return $m[1] ?? '';
 		}
 
@@ -161,7 +161,7 @@ final class Helpers
 			if ($class->isInternal()) {
 				$cache[$name] = [];
 			} else {
-				$code = file_get_contents($class->getFileName());
+				$code = (string) file_get_contents((string) $class->getFileName());
 				$cache = self::parseUseStatements($code, $name) + $cache;
 			}
 		}

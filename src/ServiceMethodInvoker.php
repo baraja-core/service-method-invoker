@@ -134,6 +134,7 @@ final class ServiceMethodInvoker
 
 
 	/**
+	 * @param string|class-string $className
 	 * @param mixed[] $params
 	 * @return object
 	 */
@@ -188,7 +189,10 @@ final class ServiceMethodInvoker
 				}
 				if (isset(self::EMPTY_TYPE_MAPPER[$type]) === true) {
 					$allowsScalar = true;
-				} elseif (\class_exists($tryType = Helpers::resolvePropertyType($property)) === true) {
+					continue;
+				}
+				$tryType = Helpers::resolvePropertyType($property);
+				if ($tryType !== null && \class_exists($tryType) === true) {
 					$entityClass = $tryType;
 				} else {
 					RuntimeInvokeException::propertyTypeIsNotSupported($service, $type);
