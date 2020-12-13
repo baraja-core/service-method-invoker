@@ -134,7 +134,6 @@ final class ServiceMethodInvoker
 
 
 	/**
-	 * @param string|class-string $className
 	 * @param mixed[] $params
 	 * @return object
 	 */
@@ -150,6 +149,7 @@ final class ServiceMethodInvoker
 		$this->recursionDetector[$className] = true;
 
 		try {
+			/** @var string $className class-string */
 			$ref = new \ReflectionClass($className);
 		} catch (\ReflectionException $e) {
 			throw new \RuntimeException('Can not reflection class "' . $className . '": ' . $e->getMessage());
