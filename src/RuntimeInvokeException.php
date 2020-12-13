@@ -70,12 +70,6 @@ final class RuntimeInvokeException extends \RuntimeException
 	}
 
 
-	public static function entityClassDoesNotExist(Service $service, string $className): void
-	{
-		throw new self($service, $service . ': Entity class "' . $className . '" does not exist.');
-	}
-
-
 	/**
 	 * @param string[] $stackTrace
 	 */

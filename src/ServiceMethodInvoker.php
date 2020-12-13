@@ -140,7 +140,7 @@ final class ServiceMethodInvoker
 	private function hydrateDataToObject(Service $service, string $className, array $params, ?string $methodName = null)
 	{
 		if (\class_exists($className) === false) {
-			RuntimeInvokeException::entityClassDoesNotExist($service, $className);
+			throw new RuntimeInvokeException($service, $service . ': Entity class "' . $className . '" does not exist.');
 		}
 		if (isset($this->recursionDetector[$className]) === true) {
 			RuntimeInvokeException::circularDependency($service, $className, array_keys($this->recursionDetector));
@@ -149,7 +149,6 @@ final class ServiceMethodInvoker
 		$this->recursionDetector[$className] = true;
 
 		try {
-			/** @var string $className class-string */
 			$ref = new \ReflectionClass($className);
 		} catch (\ReflectionException $e) {
 			throw new \RuntimeException('Can not reflection class "' . $className . '": ' . $e->getMessage());
