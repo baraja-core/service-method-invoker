@@ -25,8 +25,10 @@ final class ServiceMethodInvoker
 
 	public function __construct()
 	{
-		if (\class_exists(Debugger::class) === true) {
+		static $blueScreenRegistered = false;
+		if ($blueScreenRegistered === false && \class_exists(Debugger::class) === true) {
 			Debugger::getBlueScreen()->addPanel([BlueScreen::class, 'render']);
+			$blueScreenRegistered = true;
 		}
 	}
 
