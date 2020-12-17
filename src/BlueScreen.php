@@ -44,8 +44,9 @@ final class BlueScreen
 			}
 			if ($file !== null && $startLine !== null && \is_file((string) $file) === true) {
 				return [
-					'tab' => 'Service Invoker | ' . \get_class($service ?? ''),
-					'panel' => \Tracy\BlueScreen::highlightPhp((string) file_get_contents((string) $file), (int) $startLine, 15)
+					'tab' => 'Service Invoker | ' . htmlspecialchars((string) (\get_class($service ?? ''))),
+					'panel' => '<p>' . htmlspecialchars($file . ':' . $startLine) . '</p>'
+						. \Tracy\BlueScreen::highlightPhp((string) file_get_contents((string) $file), (int) $startLine, 15)
 						. ($params !== null ? '<p>Params:</p>' . self::renderParamsTable($params) : ''),
 				];
 			}
@@ -62,13 +63,13 @@ final class BlueScreen
 	private static function renderParamsTable(array $params): string
 	{
 		if ($params === []) {
-			return '<i>Empty array.</i>';
+			return '<i>Parameters were not passed.</i>';
 		}
 
 		$return = '';
 		foreach ($params as $key => $value) {
 			$return .= '<tr>'
-				. '<th>' . htmlspecialchars($key, ENT_IGNORE, 'UTF-8') . '</th>'
+				. '<th>$' . htmlspecialchars($key, ENT_IGNORE, 'UTF-8') . '</th>'
 				. '<td>' . Dumper::toHtml($value) . '</td>'
 				. '</tr>';
 		}
