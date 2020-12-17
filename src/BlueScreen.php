@@ -33,9 +33,13 @@ final class BlueScreen
 			try {
 				$ref = new \ReflectionClass($service);
 				$file = $ref->getFileName() ?: null;
-				$startLine = ($method = $e->getMethod()) !== null
-					? $ref->getMethod($method)->getStartLine()
-					: $ref->getStartLine();
+				if (($method = $e->getMethod()) !== null) {
+					$methodRef = $ref->getMethod($method);
+					$file = $methodRef->getFileName() ?: null;
+					$startLine = $methodRef->getStartLine();
+				} else {
+					$startLine = $ref->getStartLine();
+				}
 			} catch (\ReflectionException $e) {
 			}
 			if ($file !== null && $startLine !== null && \is_file((string) $file) === true) {
