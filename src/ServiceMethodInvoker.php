@@ -19,9 +19,6 @@ final class ServiceMethodInvoker
 		'null' => null,
 	];
 
-	/** @var bool[] (entityName => true) */
-	private array $recursionDetector = [];
-
 
 	public function __construct()
 	{
@@ -54,7 +51,6 @@ final class ServiceMethodInvoker
 				$entityType = null;
 			}
 			if ($entityType !== null && \class_exists($entityType) === true) { // entity input
-				$this->recursionDetector = [];
 				$args[$parameters[0]->getName()] = $this->hydrateDataToObject($service, $entityType, $params[$parameters[0]->getName()] ?? $params, $methodName);
 			} else { // regular input by scalar parameters
 				foreach ($parameters as $parameter) {
@@ -136,19 +132,19 @@ final class ServiceMethodInvoker
 
 
 	/**
+	 * @param bool[] $recursionContext (entityName => true)
 	 * @param mixed[] $params
 	 * @return object
 	 */
-	private function hydrateDataToObject(Service $service, string $className, array $params, ?string $methodName = null)
+	private function hydrateDataToObject(Service $service, string $className, array $params, ?string $methodName = null, array $recursionContext = [])
 	{
 		if (\class_exists($className) === false) {
 			throw new RuntimeInvokeException($service, $service . ': Entity class "' . $className . '" does not exist.');
 		}
-		if (isset($this->recursionDetector[$className]) === true) {
-			RuntimeInvokeException::circularDependency($service, $className, array_keys($this->recursionDetector));
+		if (isset($recursionContext[$className]) === true) {
+			RuntimeInvokeException::circularDependency($service, $className, array_keys($recursionContext));
 		}
-
-		$this->recursionDetector[$className] = true;
+		$recursionContext[$className] = true;
 
 		try {
 			$ref = new \ReflectionClass($className);
@@ -159,7 +155,7 @@ final class ServiceMethodInvoker
 		if (($constructor = $ref->getConstructor()) !== null) {
 			$args = [];
 			foreach ($constructor->getParameters() as $parameter) {
-				$args[$parameter->getName()] = $this->processParameterValue($service, $parameter, $params, $methodName);
+				$args[$parameter->getName()] = $this->processParameterValue($service, $parameter, $params, $methodName, $recursionContext);
 			}
 
 			$instance = $ref->newInstanceArgs(array_values($args));
@@ -200,7 +196,7 @@ final class ServiceMethodInvoker
 				}
 			}
 			if ($entityClass !== null) {
-				$this->hydrateValueToEntity($property, $instance, $this->hydrateDataToObject($service, (string) $entityClass, $params[$propertyName] ?? $params, $methodName));
+				$this->hydrateValueToEntity($property, $instance, $this->hydrateDataToObject($service, (string) $entityClass, $params[$propertyName] ?? $params, $methodName, $recursionContext));
 				continue;
 			}
 
@@ -215,7 +211,7 @@ final class ServiceMethodInvoker
 	 * @param mixed[] $params
 	 * @return mixed|null
 	 */
-	private function processParameterValue(Service $service, \ReflectionParameter $parameter, array $params, ?string $methodName = null)
+	private function processParameterValue(Service $service, \ReflectionParameter $parameter, array $params, ?string $methodName = null, array $recursionContext = [])
 	{
 		$pName = $parameter->getName();
 		if (($parameterType = ($type = $parameter->getType()) !== null ? $type->getName() : null) !== null && \class_exists($parameterType) === true) {
@@ -228,7 +224,7 @@ final class ServiceMethodInvoker
 				}
 			}
 
-			return $this->hydrateDataToObject($service, $parameterType, $params[$pName] ?? $params, $methodName);
+			return $this->hydrateDataToObject($service, $parameterType, $params[$pName] ?? $params, $methodName, $recursionContext);
 		}
 		if (isset($params[$pName]) === true) {
 			if ($params[$pName]) {
