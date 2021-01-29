@@ -39,10 +39,8 @@ final class Helpers
 	 */
 	public static function getPropertyType(\ReflectionProperty $prop): ?string
 	{
-		$type = PHP_VERSION_ID >= 70400 ? $prop->getType() : null;
-
-		return $type instanceof \ReflectionNamedType
-			? self::normalizeType($type->getName(), $prop)
+		return $prop->getType() instanceof \ReflectionNamedType
+			? self::normalizeType($prop->getType()->getName(), $prop)
 			: null;
 	}
 
@@ -186,7 +184,7 @@ final class Helpers
 		$namespace = $class = $classLevel = $level = null;
 		$res = $uses = [];
 
-		$nameTokens = PHP_VERSION_ID < 80000
+		$nameTokens = PHP_VERSION_ID < 80_000
 			? [T_STRING, T_NS_SEPARATOR]
 			: [T_STRING, T_NS_SEPARATOR, T_NAME_QUALIFIED, T_NAME_FULLY_QUALIFIED];
 
