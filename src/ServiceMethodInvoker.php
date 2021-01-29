@@ -46,7 +46,9 @@ final class ServiceMethodInvoker
 		try {
 			$parameters = ($ref = new \ReflectionMethod($service, $methodName))->getParameters();
 			if (isset($parameters[0]) === true) {
-				$entityType = ($type = $parameters[0]->getType()) !== null ? $type->getName() : null;
+				$entityType = ($type = $parameters[0]->getType()) !== null
+					? $type->getName()
+					: null;
 			} else {
 				$entityType = null;
 			}
@@ -56,7 +58,13 @@ final class ServiceMethodInvoker
 				foreach ($parameters as $parameter) {
 					$pName = $parameter->getName();
 					if ($dataMustBeArray === true && $pName === 'data') {
-						if ((($type = $parameter->getType()) !== null && ($typeName = $type->getName()) !== 'array') || $type === null) {
+						if (
+							(
+								($type = $parameter->getType()) !== null
+								&& ($typeName = $type->getName()) !== 'array'
+							)
+							|| $type === null
+						) {
 							RuntimeInvokeException::propertyDataMustBeArray($service, $type === null ? null : $typeName ?? '');
 						}
 						$args[$pName] = $params;
@@ -136,8 +144,13 @@ final class ServiceMethodInvoker
 	 * @param mixed[] $params
 	 * @return object
 	 */
-	private function hydrateDataToObject(Service $service, string $className, array $params, ?string $methodName = null, array $recursionContext = [])
-	{
+	private function hydrateDataToObject(
+		Service $service,
+		string $className,
+		array $params,
+		?string $methodName = null,
+		array $recursionContext = []
+	) {
 		if (\class_exists($className) === false) {
 			throw new RuntimeInvokeException($service, $service . ': Entity class "' . $className . '" does not exist.');
 		}
@@ -165,7 +178,10 @@ final class ServiceMethodInvoker
 
 		foreach ($ref->getProperties() as $property) {
 			$property->setAccessible(true);
-			if (isset($params[$propertyName = $property->getName()]) === true && is_scalar($params[$propertyName]) === true) {
+			if (
+				isset($params[$propertyName = $property->getName()]) === true
+				&& is_scalar($params[$propertyName]) === true
+			) {
 				$this->hydrateValueToEntity($property, $instance, $params[$propertyName]);
 				continue;
 			}
@@ -211,10 +227,18 @@ final class ServiceMethodInvoker
 	 * @param mixed[] $params
 	 * @return mixed|null
 	 */
-	private function processParameterValue(Service $service, \ReflectionParameter $parameter, array $params, ?string $methodName = null, array $recursionContext = [])
-	{
+	private function processParameterValue(
+		Service $service,
+		\ReflectionParameter $parameter,
+		array $params,
+		?string $methodName = null,
+		array $recursionContext = []
+	) {
 		$pName = $parameter->getName();
-		if (($parameterType = ($type = $parameter->getType()) !== null ? $type->getName() : null) !== null && \class_exists($parameterType) === true) {
+		if (
+			($parameterType = ($type = $parameter->getType()) !== null ? $type->getName() : null) !== null
+			&& \class_exists($parameterType) === true
+		) {
 			if (isset($params[$pName]) === true) {
 				if ($params[$pName] === 'null' && $parameter->allowsNull() === true) {
 					return null;

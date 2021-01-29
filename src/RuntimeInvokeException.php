@@ -37,8 +37,9 @@ final class RuntimeInvokeException extends \RuntimeException
 		}
 
 		throw new self(
-			$service, $service . ': Parameter $' . $parameter . ' of method ' . $method . '(' . $methodParams . ') '
-			. 'on position #' . $position . ' does not exist.'
+			$service,
+			$service . ': Parameter $' . $parameter . ' of method ' . $method . '(' . $methodParams . ') '
+			. 'on position #' . $position . ' does not exist.',
 		);
 	}
 
@@ -46,8 +47,9 @@ final class RuntimeInvokeException extends \RuntimeException
 	public static function propertyDataMustBeArray(Service $service, ?string $type): void
 	{
 		throw new self(
-			$service, $service . ': Api parameter "data" must be type of "array". '
-			. ($type === null ? 'No type has been defined. Did you set PHP 7 strict data types?' : 'Type "' . $type . '" given.')
+			$service,
+			$service . ': Api parameter "data" must be type of "array". '
+			. ($type === null ? 'No type has been defined. Did you set PHP 7 strict data types?' : 'Type "' . $type . '" given.'),
 		);
 	}
 
@@ -55,8 +57,9 @@ final class RuntimeInvokeException extends \RuntimeException
 	public static function parameterMustBeObject(Service $service, string $parameter, string $class): void
 	{
 		throw new self(
-			$service, $service . ': Parameter "' . $parameter . '" must be object '
-			. 'of type "' . $class . '" but empty value given.'
+			$service,
+			$service . ': Parameter "' . $parameter . '" must be object '
+			. 'of type "' . $class . '" but empty value given.',
 		);
 	}
 
@@ -64,8 +67,9 @@ final class RuntimeInvokeException extends \RuntimeException
 	public static function canNotCreateEmptyValueByType(Service $service, string $parameter, string $typeName): void
 	{
 		throw new self(
-			$service, $service . ': Can not create default empty value for parameter "' . $parameter . '"'
-			. ' type "' . $typeName . '" given.'
+			$service,
+			$service . ': Can not create default empty value for parameter "' . $parameter . '"'
+			. ' type "' . $typeName . '" given.',
 		);
 	}
 
@@ -76,8 +80,9 @@ final class RuntimeInvokeException extends \RuntimeException
 	public static function circularDependency(Service $service, string $className, array $stackTrace): void
 	{
 		throw new self(
-			$service, $service . ': Circular dependence has been discovered, because entity "' . $className . '" already was instanced.'
-			. "\n" . 'Current stack trace: ' . implode(', ', $stackTrace)
+			$service,
+			$service . ': Circular dependence has been discovered, because entity "' . $className . '" already was instanced.'
+			. "\n" . 'Current stack trace: ' . implode(', ', $stackTrace),
 		);
 	}
 
@@ -88,11 +93,17 @@ final class RuntimeInvokeException extends \RuntimeException
 	}
 
 
-	public static function propertyIsRequired(Service $service, string $entityName, string $propertyName, bool $allowsScalar, string $requiredType): void
-	{
+	public static function propertyIsRequired(
+		Service $service,
+		string $entityName,
+		string $propertyName,
+		bool $allowsScalar,
+		string $requiredType
+	): void {
 		throw new self(
-			$service, $service . ': Property "' . $propertyName . '" of entity "' . $entityName . '" is required. '
-			. 'Please set some' . ($allowsScalar === true ? ' scalar' : '') . ' value type of "' . $requiredType . '".'
+			$service,
+			$service . ': Property "' . $propertyName . '" of entity "' . $entityName . '" is required. '
+			. 'Please set some' . ($allowsScalar === true ? ' scalar' : '') . ' value type of "' . $requiredType . '".',
 		);
 	}
 
