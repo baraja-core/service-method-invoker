@@ -57,7 +57,6 @@ final class BlueScreen
 
 	/**
 	 * @param mixed[] $params
-	 * @return string
 	 */
 	private static function renderParamsTable(array $params): string
 	{

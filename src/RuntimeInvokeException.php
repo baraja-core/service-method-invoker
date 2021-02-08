@@ -139,7 +139,6 @@ final class RuntimeInvokeException extends \RuntimeException
 
 	/**
 	 * @param mixed[]|null $params
-	 * @return RuntimeInvokeException
 	 */
 	public function setParams(?array $params): self
 	{

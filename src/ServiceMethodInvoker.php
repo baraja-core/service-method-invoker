@@ -36,11 +36,11 @@ final class ServiceMethodInvoker
 	 * This invoke method never return void data type.
 	 *
 	 * Before given method is invoked, this internal logic check all input parameters and validate types.
+	 * In case of called method return void, invoke logic return null
 	 *
 	 * @param mixed[] $params
-	 * @return mixed|null (in case of called method return void, invoke logic return null)
 	 */
-	public function invoke(Service $service, string $methodName, array $params, bool $dataMustBeArray = false)
+	public function invoke(Service $service, string $methodName, array $params, bool $dataMustBeArray = false): mixed
 	{
 		$args = [];
 		try {
@@ -92,11 +92,8 @@ final class ServiceMethodInvoker
 	 * 2. Empty value rewrite to null, if null is supported
 	 * 3. Scalar types
 	 * 4. Other -> keep original
-	 *
-	 * @param mixed $haystack
-	 * @return mixed
 	 */
-	private function fixType($haystack, ?\ReflectionType $type, bool $allowsNull)
+	private function fixType(mixed $haystack, ?\ReflectionType $type, bool $allowsNull): mixed
 	{
 		if ($type === null) {
 			return $allowsNull && $haystack === 'null' ? null : $haystack;
@@ -118,11 +115,7 @@ final class ServiceMethodInvoker
 	}
 
 
-	/**
-	 * @param mixed $value
-	 * @return mixed|null
-	 */
-	private function returnEmptyValue(Service $service, string $parameter, $value, \ReflectionType $type)
+	private function returnEmptyValue(Service $service, string $parameter, mixed $value, \ReflectionType $type): mixed
 	{
 		if ($type->allowsNull() === true) {
 			if (($value === '0' || $value === 0) && $type->getName() === 'bool') {
@@ -192,7 +185,7 @@ final class ServiceMethodInvoker
 			if ($property->isInitialized($instance) && $property->getValue($instance) !== null) {
 				continue;
 			}
-			if (preg_match('/\@var\s+(\S+)/', $property->getDocComment() ?: '', $parser)) {
+			if (preg_match('/@var\s+(\S+)/', $property->getDocComment() ?: '', $parser)) {
 				$requiredType = $parser[1] ?: 'null';
 			} else {
 				$requiredType = 'null';
@@ -229,7 +222,6 @@ final class ServiceMethodInvoker
 
 	/**
 	 * @param mixed[] $params
-	 * @return mixed|null
 	 */
 	private function processParameterValue(
 		Service $service,
@@ -237,7 +229,7 @@ final class ServiceMethodInvoker
 		array $params,
 		?string $methodName = null,
 		array $recursionContext = []
-	) {
+	): mixed {
 		$pName = $parameter->getName();
 		if (
 			($parameterType = ($type = $parameter->getType()) !== null ? $type->getName() : null) !== null
@@ -264,7 +256,7 @@ final class ServiceMethodInvoker
 		} elseif ($parameter->isOptional() === true && $parameter->isDefaultValueAvailable() === true) {
 			try {
 				return $parameter->getDefaultValue();
-			} catch (\Throwable $e) {
+			} catch (\Throwable) {
 			}
 		} elseif ($parameter->allowsNull() === true && array_key_exists($pName, $params) && $params[$pName] === null) {
 			return null;
@@ -276,11 +268,7 @@ final class ServiceMethodInvoker
 	}
 
 
-	/**
-	 * @param mixed $instance
-	 * @param mixed $value
-	 */
-	private function hydrateValueToEntity(\ReflectionProperty $property, $instance, $value): void
+	private function hydrateValueToEntity(\ReflectionProperty $property, mixed $instance, mixed $value): void
 	{
 		try {
 			if (method_exists($instance, $setter = 'set' . $property->getName())) {

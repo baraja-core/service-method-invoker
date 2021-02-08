@@ -259,7 +259,7 @@ final class Helpers
 	/**
 	 * @param mixed[]|string|int $take
 	 */
-	private static function fetch(array &$tokens, $take): ?string
+	private static function fetch(array &$tokens, array|string|int $take): ?string
 	{
 		$res = null;
 		while ($token = current($tokens)) {
