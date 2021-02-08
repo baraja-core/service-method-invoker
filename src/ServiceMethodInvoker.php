@@ -119,11 +119,15 @@ final class ServiceMethodInvoker
 
 
 	/**
+	 * @param mixed $value
 	 * @return mixed|null
 	 */
-	private function returnEmptyValue(Service $service, string $parameter, \ReflectionType $type)
+	private function returnEmptyValue(Service $service, string $parameter, $value, \ReflectionType $type)
 	{
 		if ($type->allowsNull() === true) {
+			if (($value === '0' || $value === 0) && $type->getName() === 'bool') {
+				return false;
+			}
 			return null;
 		}
 		if (strpos($name = $type->getName(), '/') !== false || class_exists($name) === true) {
@@ -255,7 +259,7 @@ final class ServiceMethodInvoker
 				return $this->fixType($params[$pName], (($type = $parameter->getType()) !== null) ? $type : null, $parameter->allowsNull());
 			}
 			if (($type = $parameter->getType()) !== null) {
-				return $this->returnEmptyValue($service, $pName, $type);
+				return $this->returnEmptyValue($service, $pName, $params[$pName], $type);
 			}
 		} elseif ($parameter->isOptional() === true && $parameter->isDefaultValueAvailable() === true) {
 			try {
