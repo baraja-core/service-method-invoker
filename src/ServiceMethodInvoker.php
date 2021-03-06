@@ -123,7 +123,7 @@ final class ServiceMethodInvoker
 			}
 			return null;
 		}
-		if (strpos($name = $type->getName(), '/') !== false || class_exists($name) === true) {
+		if (str_contains($name = $type->getName(), '/') || class_exists($name) === true) {
 			RuntimeInvokeException::parameterMustBeObject($service, $parameter, $name);
 		}
 		if (isset(self::EMPTY_TYPE_MAPPER[$name]) === true) {

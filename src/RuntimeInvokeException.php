@@ -7,17 +7,17 @@ namespace Baraja;
 
 final class RuntimeInvokeException extends \RuntimeException
 {
-	private ?Service $service;
-
-	private ?string $method;
+	private ?string $method = null;
 
 	/** @var mixed[]|null */
-	private ?array $params;
+	private ?array $params = null;
 
 
-	public function __construct(?Service $service, string $message, ?\Throwable $previous = null)
-	{
-		$this->service = $service;
+	public function __construct(
+		private ?Service $service,
+		string $message,
+		?\Throwable $previous = null
+	) {
 		parent::__construct($message, 500, $previous);
 	}
 
@@ -33,7 +33,8 @@ final class RuntimeInvokeException extends \RuntimeException
 					. (($type = $refParameter->getType()) !== null ? $type->getName() . ' ' : '')
 					. '$' . $refParameter->getName();
 			}
-		} catch (\ReflectionException $e) {
+		} catch (\ReflectionException) {
+			// Silence is golden.
 		}
 
 		throw new self(
