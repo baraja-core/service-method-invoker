@@ -66,7 +66,14 @@ final class ServiceMethodInvoker
 							)
 							|| $type === null
 						) {
-							RuntimeInvokeException::propertyDataMustBeArray($service, $type === null ? null : $typeName ?? '');
+							throw new RuntimeInvokeException(
+								$service,
+								$service . ': Api parameter "data" must be type of "array". '
+								. ($type === null
+									? 'No type has been defined. Did you set PHP 7 strict data types?'
+									: 'Type "' . ($typeName ?? '') . '" given.'
+								),
+							);
 						}
 						$args[$pName] = $params;
 					} else {
@@ -125,15 +132,21 @@ final class ServiceMethodInvoker
 			return null;
 		}
 		if (str_contains($name = $type->getName(), '/') || class_exists($name) === true) {
-			RuntimeInvokeException::parameterMustBeObject($service, $parameter, $name);
+			throw new RuntimeInvokeException(
+				$service,
+				$service . ': Parameter "' . $parameter . '" must be a object '
+				. 'of type "' . $name . '", but empty value given.',
+			);
 		}
 		if (isset(self::EMPTY_TYPE_MAPPER[$name]) === true) {
 			return self::EMPTY_TYPE_MAPPER[$name];
 		}
 
-		RuntimeInvokeException::canNotCreateEmptyValueByType($service, $parameter, $name);
-
-		return null;
+		throw new RuntimeInvokeException(
+			$service,
+			$service . ': Can not create default empty value for parameter "' . $parameter . '"'
+			. ' type "' . $name . '" given.',
+		);
 	}
 
 
@@ -152,14 +165,22 @@ final class ServiceMethodInvoker
 			throw new RuntimeInvokeException($service, $service . ': Entity class "' . $className . '" does not exist.');
 		}
 		if (isset($recursionContext[$className]) === true) {
-			RuntimeInvokeException::circularDependency($service, $className, array_keys($recursionContext));
+			throw new RuntimeInvokeException(
+				$service,
+				$service . ': Circular dependence has been discovered, because entity "' . $className . '" already was instanced.'
+				. "\n" . 'Current stack trace: ' . implode(', ', array_keys($recursionContext)),
+			);
 		}
 		$recursionContext[$className] = true;
 
 		try {
 			$ref = new \ReflectionClass($className);
 		} catch (\ReflectionException $e) {
-			throw new \RuntimeException('Can not reflection class "' . $className . '": ' . $e->getMessage());
+			throw new \RuntimeException(
+				'Can not create reflection class of "' . $className . '": ' . $e->getMessage(),
+				$e->getCode(),
+				$e,
+			);
 		}
 
 		if (($constructor = $ref->getConstructor()) !== null) {
@@ -205,7 +226,11 @@ final class ServiceMethodInvoker
 				if ($tryType !== null && \class_exists($tryType) === true) {
 					$entityClass = $tryType;
 				} else {
-					RuntimeInvokeException::propertyTypeIsNotSupported($service, $type);
+					throw new RuntimeInvokeException(
+						$service,
+						$service . ': Property type of "' . $type . '" is not supported. '
+						. 'Did you mean a scalar type or a entity?',
+					);
 				}
 			}
 			if ($entityClass !== null) {

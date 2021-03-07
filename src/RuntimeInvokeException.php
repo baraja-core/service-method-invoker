@@ -45,55 +45,6 @@ final class RuntimeInvokeException extends \RuntimeException
 	}
 
 
-	public static function propertyDataMustBeArray(Service $service, ?string $type): void
-	{
-		throw new self(
-			$service,
-			$service . ': Api parameter "data" must be type of "array". '
-			. ($type === null ? 'No type has been defined. Did you set PHP 7 strict data types?' : 'Type "' . $type . '" given.'),
-		);
-	}
-
-
-	public static function parameterMustBeObject(Service $service, string $parameter, string $class): void
-	{
-		throw new self(
-			$service,
-			$service . ': Parameter "' . $parameter . '" must be object '
-			. 'of type "' . $class . '" but empty value given.',
-		);
-	}
-
-
-	public static function canNotCreateEmptyValueByType(Service $service, string $parameter, string $typeName): void
-	{
-		throw new self(
-			$service,
-			$service . ': Can not create default empty value for parameter "' . $parameter . '"'
-			. ' type "' . $typeName . '" given.',
-		);
-	}
-
-
-	/**
-	 * @param string[] $stackTrace
-	 */
-	public static function circularDependency(Service $service, string $className, array $stackTrace): void
-	{
-		throw new self(
-			$service,
-			$service . ': Circular dependence has been discovered, because entity "' . $className . '" already was instanced.'
-			. "\n" . 'Current stack trace: ' . implode(', ', $stackTrace),
-		);
-	}
-
-
-	public static function propertyTypeIsNotSupported(Service $service, string $type): void
-	{
-		throw new self($service, $service . ': Property type "' . $type . '" is not supported. Did you mean some scalar type or entity?');
-	}
-
-
 	public static function propertyIsRequired(
 		Service $service,
 		string $entityName,
