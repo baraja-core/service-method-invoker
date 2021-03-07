@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Baraja;
 
 
+use Baraja\ServiceMethodInvoker\BlueScreen;
 use Baraja\ServiceMethodInvoker\Helpers;
 use Tracy\Debugger;
 

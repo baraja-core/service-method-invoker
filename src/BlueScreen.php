@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Baraja;
+namespace Baraja\ServiceMethodInvoker;
 
 
 use Tracy\Dumper;
