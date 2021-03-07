@@ -241,7 +241,7 @@ final class ServiceMethodInvoker
 				if ($params[$pName] instanceof $parameterType) {
 					return $params[$pName];
 				}
-				if (isset(class_implements($parameterType)[\DateTimeInterface::class])) {
+				if (isset((class_implements($parameterType) ?: [])[\DateTimeInterface::class])) {
 					try {
 						return (new \ReflectionClass($parameterType))->newInstance($params[$pName]);
 					} catch (\ReflectionException $e) {
@@ -249,7 +249,7 @@ final class ServiceMethodInvoker
 							'Parameter "' . $pName . '" type of "' . $parameterType . '" '
 							. 'can not be instanced: ' . $e->getMessage(),
 							$e->getCode(),
-							$e
+							$e,
 						);
 					}
 				}
