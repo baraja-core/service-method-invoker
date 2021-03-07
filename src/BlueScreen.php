@@ -6,6 +6,7 @@ namespace Baraja;
 
 
 use Tracy\Dumper;
+use Tracy\Helpers;
 
 final class BlueScreen
 {
@@ -39,13 +40,14 @@ final class BlueScreen
 				} else {
 					$startLine = $ref->getStartLine();
 				}
-			} catch (\ReflectionException $e) {
+			} catch (\ReflectionException) {
+				// Silence is golden.
 			}
 			if ($file !== null && $startLine !== null && \is_file((string) $file) === true) {
 				return [
 					'tab' => 'Service Invoker | ' . htmlspecialchars((string) (\get_class($service ?? ''))),
-					'panel' => '<p>' . htmlspecialchars($file . ':' . $startLine) . '</p>'
-						. \Tracy\BlueScreen::highlightPhp((string) file_get_contents((string) $file), (int) $startLine, 15)
+					'panel' => '<p>' . Helpers::editorLink($file, $startLine) . '</p>'
+						. \Tracy\BlueScreen::highlightPhp((string) file_get_contents((string) $file), (int) $startLine)
 						. ($params !== null ? '<p>Params:</p>' . self::renderParamsTable($params) : ''),
 				];
 			}
