@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Baraja\ServiceMethodInvoker;
 
 
+use Baraja\RuntimeInvokeException;
 use Tracy\Dumper;
 use Tracy\Helpers;
 
