@@ -367,6 +367,7 @@ final class ServiceMethodInvoker
 	{
 		// 1. Native DateTime object
 		if (isset((class_implements($className) ?: [])[\DateTimeInterface::class])) {
+			/** @phpstan-ignore-next-line */
 			return (new \ReflectionClass($className))->newInstance($value);
 		}
 
