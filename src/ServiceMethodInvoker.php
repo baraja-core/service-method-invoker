@@ -7,6 +7,7 @@ namespace Baraja;
 
 use Baraja\ServiceMethodInvoker\BlueScreen;
 use Baraja\ServiceMethodInvoker\Helpers;
+use Baraja\ServiceMethodInvoker\ProjectEntityRepository;
 use Tracy\Debugger;
 
 final class ServiceMethodInvoker
@@ -21,8 +22,9 @@ final class ServiceMethodInvoker
 	];
 
 
-	public function __construct()
-	{
+	public function __construct(
+		private ?ProjectEntityRepository $projectEntityRepository = null
+	) {
 		static $blueScreenRegistered = false;
 		if ($blueScreenRegistered === false && \class_exists(Debugger::class) === true) {
 			Debugger::getBlueScreen()->addPanel([BlueScreen::class, 'render']);
@@ -129,6 +131,7 @@ final class ServiceMethodInvoker
 			if (($value === '0' || $value === 0) && $type->getName() === 'bool') {
 				return false;
 			}
+
 			return null;
 		}
 		if (str_contains($name = $type->getName(), '/') || class_exists($name) === true) {
@@ -267,17 +270,17 @@ final class ServiceMethodInvoker
 				if ($params[$pName] instanceof $parameterType) {
 					return $params[$pName];
 				}
-				if (isset((class_implements($parameterType) ?: [])[\DateTimeInterface::class])) {
-					try {
-						return (new \ReflectionClass($parameterType))->newInstance($params[$pName]);
-					} catch (\ReflectionException $e) {
-						throw new \RuntimeException(
-							'Parameter "' . $pName . '" type of "' . $parameterType . '" '
-							. 'can not be instanced: ' . $e->getMessage(),
-							$e->getCode(),
-							$e,
-						);
+				try {
+					if (($findInstance = $this->tryMakeEntityInstance($parameterType, $params[$pName])) !== null) {
+						return $findInstance;
 					}
+				} catch (\ReflectionException $e) {
+					throw new \RuntimeException(
+						'Parameter "' . $pName . '" type of "' . $parameterType . '" '
+						. 'can not be instanced: ' . $e->getMessage(),
+						$e->getCode(),
+						$e,
+					);
 				}
 			}
 
@@ -307,14 +310,71 @@ final class ServiceMethodInvoker
 
 	private function hydrateValueToEntity(\ReflectionProperty $property, mixed $instance, mixed $value): void
 	{
+		$setProperty = static function (\ReflectionProperty $property, mixed $instance, mixed $value): void {
+			try {
+				$property->setValue($instance, $value);
+			} catch (\TypeError) {
+				// Silence is golden.
+			}
+		};
+
 		try {
 			if (method_exists($instance, $setter = 'set' . $property->getName())) {
-				$instance->$setter($value);
+				$ref = new \ReflectionMethod($instance, $setter);
+				$param = $ref->getParameters()[0] ?? null;
+				if ($param === null) {
+					$setProperty($property, $instance, $value);
+				} elseif (($type = $param->getType()) === null) {
+					trigger_error('Parameter type of setter "' . $setter . '" is undefined.');
+					$setProperty($property, $instance, $value);
+				} elseif ($value === null) {
+					if ($type->allowsNull()) {
+						$instance->$setter(null);
+					} else {
+						throw new \InvalidArgumentException('Value for setter "' . $setter . '" is required, but null given.');
+					}
+				} elseif (class_exists($type->getName())) { // native object type or entity
+					$valueInstance = $this->tryMakeEntityInstance($type->getName(), $value);
+					if ($valueInstance === null) {
+						trigger_error(
+							'Mandatory value (type of "' . get_debug_type($value) . '") '
+							. 'for setter "' . $setter . '" can not be casted to "' . $type->getName() . '"'
+							. (class_exists('\Tracy\Dumper')
+								? ', because incompatible value "' . trim(\Tracy\Dumper::toText($value)) . '" given.'
+								: '.'
+							),
+						);
+					} else {
+						$instance->$setter($valueInstance);
+					}
+				} else { // scalar type or unknown
+					try {
+						$instance->$setter($value);
+					} catch (\TypeError $e) {
+						trigger_error('Incompatible type: ' . $e->getMessage());
+					}
+				}
 			} else {
-				$property->setValue($instance, $value);
+				$setProperty($property, $instance, $value);
 			}
 		} catch (\InvalidArgumentException $e) {
 			throw new \InvalidArgumentException('UserException: ' . $e->getMessage(), $e->getCode(), $e);
 		}
+	}
+
+
+	private function tryMakeEntityInstance(string $className, mixed $value): ?object
+	{
+		// 1. Native DateTime object
+		if (isset((class_implements($className) ?: [])[\DateTimeInterface::class])) {
+			return (new \ReflectionClass($className))->newInstance($value);
+		}
+
+		// 2. Try find instance in project specific repository by id
+		if ($this->projectEntityRepository !== null && (is_int($value) || is_string($value))) {
+			return $this->projectEntityRepository->find($className, $value);
+		}
+
+		return null;
 	}
 }
