@@ -139,7 +139,6 @@ final class ServiceMethodInvoker
 	/**
 	 * @param bool[] $recursionContext (entityName => true)
 	 * @param mixed[] $params
-	 * @return object
 	 */
 	private function hydrateDataToObject(
 		Service $service,
@@ -147,7 +146,7 @@ final class ServiceMethodInvoker
 		array $params,
 		?string $methodName = null,
 		array $recursionContext = []
-	) {
+	): object {
 		if (\class_exists($className) === false) {
 			throw new RuntimeInvokeException($service, $service . ': Entity class "' . $className . '" does not exist.');
 		}
@@ -235,12 +234,24 @@ final class ServiceMethodInvoker
 			($parameterType = ($type = $parameter->getType()) !== null ? $type->getName() : null) !== null
 			&& \class_exists($parameterType) === true
 		) {
-			if (isset($params[$pName]) === true) {
-				if ($params[$pName] === 'null' && $parameter->allowsNull() === true) {
+			if (array_key_exists($pName, $params) === true) {
+				if (($params[$pName] === 'null' || $params[$pName] === null) && $parameter->allowsNull() === true) {
 					return null;
 				}
 				if ($params[$pName] instanceof $parameterType) {
 					return $params[$pName];
+				}
+				if (isset(class_implements($parameterType)[\DateTimeInterface::class])) {
+					try {
+						return (new \ReflectionClass($parameterType))->newInstance($params[$pName]);
+					} catch (\ReflectionException $e) {
+						throw new \RuntimeException(
+							'Parameter "' . $pName . '" type of "' . $parameterType . '" '
+							. 'can not be instanced: ' . $e->getMessage(),
+							$e->getCode(),
+							$e
+						);
+					}
 				}
 			}
 
