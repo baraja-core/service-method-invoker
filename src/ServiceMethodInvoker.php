@@ -9,6 +9,7 @@ use Baraja\ServiceMethodInvoker\BlueScreen;
 use Baraja\ServiceMethodInvoker\Helpers;
 use Baraja\ServiceMethodInvoker\ProjectEntityRepository;
 use Tracy\Debugger;
+use Tracy\Dumper;
 
 final class ServiceMethodInvoker
 {
@@ -114,7 +115,11 @@ final class ServiceMethodInvoker
 		if ($type->getName() === 'bool') {
 			return \in_array(strtolower((string) $haystack), ['1', 'true', 'yes'], true) === true;
 		}
-		if ($haystack === 'null' && $allowsNull === true && ($type->getName() === 'int' || $type->getName() === 'float')) {
+		if ($haystack === 'null' && ($type->getName() === 'int' || $type->getName() === 'float')) {
+			if ($allowsNull === false) {
+				throw new \LogicException('Parameter can not be nullable.');
+			}
+
 			return null;
 		}
 		if ($type->getName() === 'int') {
@@ -294,20 +299,36 @@ final class ServiceMethodInvoker
 
 			return $this->hydrateDataToObject($service, $parameterType, $params[$pName] ?? $params, $methodName, $recursionContext);
 		}
-		if (isset($params[$pName]) === true) {
-			if ($params[$pName]) {
-				return $this->fixType($params[$pName], (($type = $parameter->getType()) !== null) ? $type : null, $parameter->allowsNull());
+		try {
+			if (isset($params[$pName]) === true) {
+				if ($params[$pName]) {
+					return $this->fixType(
+						$params[$pName],
+						(($type = $parameter->getType()) !== null) ? $type : null,
+						$parameter->allowsNull(),
+					);
+				}
+				if (($type = $parameter->getType()) !== null) {
+					return $this->returnEmptyValue($service, $pName, $params[$pName], $type);
+				}
+			} elseif ($parameter->isOptional() === true && $parameter->isDefaultValueAvailable() === true) {
+				try {
+					return $parameter->getDefaultValue();
+				} catch (\Throwable) {
+				}
+			} elseif ($parameter->allowsNull() === true && array_key_exists($pName, $params) && $params[$pName] === null) {
+				return null;
 			}
-			if (($type = $parameter->getType()) !== null) {
-				return $this->returnEmptyValue($service, $pName, $params[$pName], $type);
-			}
-		} elseif ($parameter->isOptional() === true && $parameter->isDefaultValueAvailable() === true) {
-			try {
-				return $parameter->getDefaultValue();
-			} catch (\Throwable) {
-			}
-		} elseif ($parameter->allowsNull() === true && array_key_exists($pName, $params) && $params[$pName] === null) {
-			return null;
+		} catch (\LogicException) {
+			throw new RuntimeInvokeException(
+				$service,
+				$service . ': Input value (' . get_debug_type($params[$pName]) . ') of parameter $' . $pName
+				. ' is not compatible with native method argument type (' . $parameter->getType() . ').'
+				. (isset($params[$pName]) && class_exists(Dumper::class)
+					? "\n" . 'Input value: ' . trim(Dumper::toText($params[$pName]))
+					: ''
+				)
+			);
 		}
 
 		RuntimeInvokeException::parameterDoesNotSet($service, $parameter->getName(), $parameter->getPosition(), $methodName ?? '');
