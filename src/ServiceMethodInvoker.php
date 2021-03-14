@@ -114,6 +114,9 @@ final class ServiceMethodInvoker
 		if ($type->getName() === 'bool') {
 			return \in_array(strtolower((string) $haystack), ['1', 'true', 'yes'], true) === true;
 		}
+		if ($haystack === 'null' && $allowsNull === true && ($type->getName() === 'int' || $type->getName() === 'float')) {
+			return null;
+		}
 		if ($type->getName() === 'int') {
 			return (int) $haystack;
 		}
@@ -128,8 +131,13 @@ final class ServiceMethodInvoker
 	private function returnEmptyValue(Service $service, string $parameter, mixed $value, \ReflectionType $type): mixed
 	{
 		if ($type->allowsNull() === true) {
-			if (($value === '0' || $value === 0) && $type->getName() === 'bool') {
-				return false;
+			if (($value === '0' || $value === 0)) {
+				if (($typeName = $type->getName()) === 'bool') {
+					return false;
+				}
+				if ($typeName === 'int' || $typeName === 'float') {
+					return 0;
+				}
 			}
 
 			return null;
