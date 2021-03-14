@@ -269,7 +269,7 @@ final class ServiceMethodInvoker
 					(string) $entityClass,
 					$params[$propertyName] ?? $params,
 					$methodName,
-					$recursionContext
+					$recursionContext,
 				));
 				continue;
 			}
@@ -322,7 +322,7 @@ final class ServiceMethodInvoker
 				$parameterType,
 				$params[$pName] ?? $params,
 				$methodName,
-				$recursionContext
+				$recursionContext,
 			);
 		}
 		try {
