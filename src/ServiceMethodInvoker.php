@@ -301,22 +301,30 @@ final class ServiceMethodInvoker
 		}
 		try {
 			if (isset($params[$pName]) === true) {
+				$type = $parameter->getType();
 				if ($params[$pName]) {
 					return $this->fixType(
 						$params[$pName],
-						(($type = $parameter->getType()) !== null) ? $type : null,
+						$type,
 						$parameter->allowsNull(),
 					);
 				}
-				if (($type = $parameter->getType()) !== null) {
+				if ($type !== null) {
 					return $this->returnEmptyValue($service, $pName, $params[$pName], $type);
 				}
-			} elseif ($parameter->isOptional() === true && $parameter->isDefaultValueAvailable() === true) {
+			} elseif (
+				$parameter->isOptional() === true
+				&& $parameter->isDefaultValueAvailable() === true
+			) {
 				try {
 					return $parameter->getDefaultValue();
 				} catch (\Throwable) {
 				}
-			} elseif ($parameter->allowsNull() === true && array_key_exists($pName, $params) && $params[$pName] === null) {
+			} elseif (
+				array_key_exists($pName, $params)
+				&& $params[$pName] === null
+				&& $parameter->allowsNull() === true
+			) {
 				return null;
 			}
 		} catch (\LogicException) {
@@ -327,7 +335,7 @@ final class ServiceMethodInvoker
 				. (isset($params[$pName]) && class_exists(Dumper::class)
 					? "\n" . 'Input value: ' . trim(Dumper::toText($params[$pName]))
 					: ''
-				)
+				),
 			);
 		}
 
