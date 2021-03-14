@@ -44,7 +44,7 @@ final class ServiceMethodInvoker
 	 *
 	 * @param mixed[] $params
 	 */
-	public function invoke(Service $service, string $methodName, array $params, bool $dataMustBeArray = false): mixed
+	public function invoke(object $service, string $methodName, array $params, bool $dataMustBeArray = false): mixed
 	{
 		$args = [];
 		try {
@@ -57,7 +57,12 @@ final class ServiceMethodInvoker
 				$entityType = null;
 			}
 			if ($entityType !== null && \class_exists($entityType) === true) { // entity input
-				$args[$parameters[0]->getName()] = $this->hydrateDataToObject($service, $entityType, $params[$parameters[0]->getName()] ?? $params, $methodName);
+				$args[$parameters[0]->getName()] = $this->hydrateDataToObject(
+					$service,
+					$entityType,
+					$params[$parameters[0]->getName()] ?? $params,
+					$methodName,
+				);
 			} else { // regular input by scalar parameters
 				foreach ($parameters as $parameter) {
 					$pName = $parameter->getName();
@@ -71,7 +76,7 @@ final class ServiceMethodInvoker
 						) {
 							throw new RuntimeInvokeException(
 								$service,
-								$service . ': Api parameter "data" must be type of "array". '
+								Helpers::formatServiceName($service) . ': Api parameter "data" must be type of "array". '
 								. ($type === null
 									? 'No type has been defined. Did you set PHP 7 strict data types?'
 									: 'Type "' . ($typeName ?? '') . '" given.'
@@ -133,7 +138,7 @@ final class ServiceMethodInvoker
 	}
 
 
-	private function returnEmptyValue(Service $service, string $parameter, mixed $value, \ReflectionType $type): mixed
+	private function returnEmptyValue(object $service, string $parameter, mixed $value, \ReflectionType $type): mixed
 	{
 		if ($type->allowsNull() === true) {
 			if (($value === '0' || $value === 0)) {
@@ -150,7 +155,7 @@ final class ServiceMethodInvoker
 		if (str_contains($name = $type->getName(), '/') || class_exists($name) === true) {
 			throw new RuntimeInvokeException(
 				$service,
-				$service . ': Parameter "' . $parameter . '" must be a object '
+				Helpers::formatServiceName($service) . ': Parameter "' . $parameter . '" must be a object '
 				. 'of type "' . $name . '", but empty value given.',
 			);
 		}
@@ -160,7 +165,7 @@ final class ServiceMethodInvoker
 
 		throw new RuntimeInvokeException(
 			$service,
-			$service . ': Can not create default empty value for parameter "' . $parameter . '"'
+			Helpers::formatServiceName($service) . ': Can not create default empty value for parameter "' . $parameter . '"'
 			. ' type "' . $name . '" given.',
 		);
 	}
@@ -168,22 +173,31 @@ final class ServiceMethodInvoker
 
 	/**
 	 * @param bool[] $recursionContext (entityName => true)
-	 * @param mixed[] $params
 	 */
 	private function hydrateDataToObject(
-		Service $service,
+		object $service,
 		string $className,
-		array $params,
+		mixed $params,
 		?string $methodName = null,
 		array $recursionContext = []
 	): object {
 		if (\class_exists($className) === false) {
-			throw new RuntimeInvokeException($service, $service . ': Entity class "' . $className . '" does not exist.');
+			throw new RuntimeInvokeException(
+				$service,
+				Helpers::formatServiceName($service) . ': Entity class "' . $className . '" does not exist.',
+			);
+		}
+		if (is_array($params) === false) {
+			$valueInstance = $this->tryMakeEntityInstance($className, $params);
+			if ($valueInstance !== null) {
+				return $valueInstance;
+			}
 		}
 		if (isset($recursionContext[$className]) === true) {
 			throw new RuntimeInvokeException(
 				$service,
-				$service . ': Circular dependence has been discovered, because entity "' . $className . '" already was instanced.'
+				Helpers::formatServiceName($service) . ': Circular reference detected, '
+				. 'because the entity "' . $className . '" already has been instanced.'
 				. "\n" . 'Current stack trace: ' . implode(', ', array_keys($recursionContext)),
 			);
 		}
@@ -244,13 +258,19 @@ final class ServiceMethodInvoker
 				} else {
 					throw new RuntimeInvokeException(
 						$service,
-						$service . ': Property type of "' . $type . '" is not supported. '
+						Helpers::formatServiceName($service) . ': Property type of "' . $type . '" is not supported. '
 						. 'Did you mean a scalar type or a entity?',
 					);
 				}
 			}
 			if ($entityClass !== null) {
-				$this->hydrateValueToEntity($property, $instance, $this->hydrateDataToObject($service, (string) $entityClass, $params[$propertyName] ?? $params, $methodName, $recursionContext));
+				$this->hydrateValueToEntity($property, $instance, $this->hydrateDataToObject(
+					$service,
+					(string) $entityClass,
+					$params[$propertyName] ?? $params,
+					$methodName,
+					$recursionContext
+				));
 				continue;
 			}
 
@@ -265,7 +285,7 @@ final class ServiceMethodInvoker
 	 * @param mixed[] $params
 	 */
 	private function processParameterValue(
-		Service $service,
+		object $service,
 		\ReflectionParameter $parameter,
 		array $params,
 		?string $methodName = null,
@@ -297,7 +317,13 @@ final class ServiceMethodInvoker
 				}
 			}
 
-			return $this->hydrateDataToObject($service, $parameterType, $params[$pName] ?? $params, $methodName, $recursionContext);
+			return $this->hydrateDataToObject(
+				$service,
+				$parameterType,
+				$params[$pName] ?? $params,
+				$methodName,
+				$recursionContext
+			);
 		}
 		try {
 			if (isset($params[$pName]) === true) {
@@ -330,7 +356,7 @@ final class ServiceMethodInvoker
 		} catch (\LogicException) {
 			throw new RuntimeInvokeException(
 				$service,
-				$service . ': Input value (' . get_debug_type($params[$pName]) . ') of parameter $' . $pName
+				Helpers::formatServiceName($service) . ': Input value (' . get_debug_type($params[$pName]) . ') of parameter $' . $pName
 				. ' is not compatible with native method argument type (' . $parameter->getType() . ').'
 				. (isset($params[$pName]) && class_exists(Dumper::class)
 					? "\n" . 'Input value: ' . trim(Dumper::toText($params[$pName]))
