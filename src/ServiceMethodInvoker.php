@@ -46,9 +46,26 @@ final class ServiceMethodInvoker
 	 */
 	public function invoke(object $service, string $methodName, array $params, bool $dataMustBeArray = false): mixed
 	{
+		try {
+			$ref = new \ReflectionMethod($service, $methodName);
+		} catch (\ReflectionException $e) {
+			throw new \RuntimeException($e->getMessage(), $e->getCode(), $e);
+		}
+		$args = $this->getInvokeArgs($service, $methodName, $params, $dataMustBeArray);
+
+		return $ref->invokeArgs($service, $args);
+	}
+
+
+	/**
+	 * @param mixed[] $params
+	 * @return array<string, mixed>
+	 */
+	public function getInvokeArgs(object $service, string $methodName, array $params, bool $dataMustBeArray = false): array
+	{
 		$args = [];
 		try {
-			$parameters = ($ref = new \ReflectionMethod($service, $methodName))->getParameters();
+			$parameters = (new \ReflectionMethod($service, $methodName))->getParameters();
 			if (isset($parameters[0]) === true) {
 				$entityType = ($type = $parameters[0]->getType()) !== null
 					? $type->getName()
@@ -97,7 +114,7 @@ final class ServiceMethodInvoker
 			throw new \RuntimeException($e->getMessage(), $e->getCode(), $e);
 		}
 
-		return $ref->invokeArgs($service, $args);
+		return $args;
 	}
 
 
