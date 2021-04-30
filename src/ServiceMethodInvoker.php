@@ -44,8 +44,12 @@ final class ServiceMethodInvoker
 	 *
 	 * @param mixed[] $params
 	 */
-	public function invoke(object $service, string $methodName, array $params, bool $dataMustBeArray = false): mixed
-	{
+	public function invoke(
+		object $service,
+		string $methodName,
+		array $params,
+		bool $dataMustBeArray = false
+	): mixed {
 		try {
 			$ref = new \ReflectionMethod($service, $methodName);
 		} catch (\ReflectionException $e) {
@@ -61,8 +65,12 @@ final class ServiceMethodInvoker
 	 * @param mixed[] $params
 	 * @return array<string, mixed>
 	 */
-	public function getInvokeArgs(object $service, string $methodName, array $params, bool $dataMustBeArray = false): array
-	{
+	public function getInvokeArgs(
+		object $service,
+		string $methodName,
+		array $params,
+		bool $dataMustBeArray = false
+	): array {
 		$args = [];
 		try {
 			$parameters = (new \ReflectionMethod($service, $methodName))->getParameters();
