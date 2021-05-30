@@ -82,8 +82,8 @@ final class ServiceMethodInvoker
 			}
 			if (
 				$entityType !== null
-				&& is_subclass_of($entityType, \DateTimeInterface::class) === false
 				&& \class_exists($entityType) === true
+				&& is_subclass_of($entityType, \DateTimeInterface::class) === false
 			) { // entity input
 				$args[$parameters[0]->getName()] = $this->hydrateDataToObject(
 					$service,
