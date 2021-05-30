@@ -75,13 +75,16 @@ final class ServiceMethodInvoker
 		try {
 			$parameters = (new \ReflectionMethod($service, $methodName))->getParameters();
 			if (isset($parameters[0]) === true) {
-				$entityType = ($type = $parameters[0]->getType()) !== null
-					? $type->getName()
-					: null;
+				$type = $parameters[0]->getType();
+				$entityType = $type !== null ? $type->getName() : null;
 			} else {
 				$entityType = null;
 			}
-			if ($entityType !== null && \class_exists($entityType) === true) { // entity input
+			if (
+				$entityType !== null
+				&& is_subclass_of($entityType, \DateTimeInterface::class) === false
+				&& \class_exists($entityType) === true
+			) { // entity input
 				$args[$parameters[0]->getName()] = $this->hydrateDataToObject(
 					$service,
 					$entityType,
