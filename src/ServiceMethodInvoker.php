@@ -50,6 +50,17 @@ final class ServiceMethodInvoker
 		array $params,
 		bool $dataMustBeArray = false
 	): mixed {
+		if (method_exists($service, $methodName) === false) {
+			throw new \InvalidArgumentException(
+				'Method "' . $methodName . '" in class "' . get_debug_type($service) . '" '
+				. 'does not exist or is not public and callable.',
+			);
+		}
+		if (is_callable([$service, $methodName]) === false) {
+			throw new \InvalidArgumentException(
+				'Method "' . $methodName . '" in class "' . get_debug_type($service) . '" is not callable.',
+			);
+		}
 		try {
 			$ref = new \ReflectionMethod($service, $methodName);
 		} catch (\ReflectionException $e) {
@@ -71,6 +82,17 @@ final class ServiceMethodInvoker
 		array $params,
 		bool $dataMustBeArray = false
 	): array {
+		if (method_exists($service, $methodName) === false) {
+			throw new \InvalidArgumentException(
+				'Method "' . $methodName . '" in class "' . get_debug_type($service) . '" '
+				. 'does not exist or is not public and callable.',
+			);
+		}
+		if (is_callable([$service, $methodName]) === false) {
+			throw new \InvalidArgumentException(
+				'Method "' . $methodName . '" in class "' . get_debug_type($service) . '" is not callable.',
+			);
+		}
 		$args = [];
 		try {
 			$parameters = (new \ReflectionMethod($service, $methodName))->getParameters();
