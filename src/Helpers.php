@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Baraja\ServiceMethodInvoker;
 
 
-use Baraja\Service;
-
 final class Helpers
 {
 	private const BUILTIN_TYPES = [
@@ -24,7 +22,7 @@ final class Helpers
 
 	public static function formatServiceName(object $service): string
 	{
-		return $service instanceof Service
+		return $service instanceof \Stringable
 			? (string) $service
 			: get_debug_type($service);
 	}
