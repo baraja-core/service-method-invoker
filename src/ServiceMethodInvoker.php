@@ -108,10 +108,10 @@ final class ServiceMethodInvoker
 				&& is_subclass_of($entityType, \DateTimeInterface::class) === false
 			) { // entity input
 				$args[$parameters[0]->getName()] = $this->hydrateDataToObject(
-					$service,
-					$entityType,
-					$params[$parameters[0]->getName()] ?? $params,
-					$methodName,
+					service: $service,
+					className: $entityType,
+					params: $params[$parameters[0]->getName()] ?? $params,
+					methodName: $methodName,
 				);
 			} else { // regular input by scalar parameters
 				foreach ($parameters as $parameter) {
@@ -164,7 +164,7 @@ final class ServiceMethodInvoker
 		if ($type === null) {
 			return $allowsNull && $haystack === 'null' ? null : $haystack;
 		}
-		if (!$haystack && $type->allowsNull()) {
+		if (((bool) $haystack) === false && $type->allowsNull() === true) {
 			return null;
 		}
 		if ($type->getName() === 'bool') {
@@ -222,7 +222,7 @@ final class ServiceMethodInvoker
 
 
 	/**
-	 * @param bool[] $recursionContext (entityName => true)
+	 * @param array<string, bool> $recursionContext (entityName => true)
 	 */
 	private function hydrateDataToObject(
 		object $service,
@@ -286,8 +286,8 @@ final class ServiceMethodInvoker
 			if ($property->isInitialized($instance) && $property->getValue($instance) !== null) {
 				continue;
 			}
-			if (preg_match('/@var\s+(\S+)/', $property->getDocComment() ?: '', $parser)) {
-				$requiredType = $parser[1] ?: 'null';
+			if (preg_match('/@var\s+(\S+)/', (string) $property->getDocComment(), $parser) === 1) {
+				$requiredType = isset($parser[1]) && $parser[1] !== '' ? $parser[1] : 'null';
 			} else {
 				$requiredType = 'null';
 			}
@@ -315,11 +315,11 @@ final class ServiceMethodInvoker
 			}
 			if ($entityClass !== null) {
 				$this->hydrateValueToEntity($property, $instance, $this->hydrateDataToObject(
-					$service,
-					(string) $entityClass,
-					$params[$propertyName] ?? $params,
-					$methodName,
-					$recursionContext,
+					service: $service,
+					className: $entityClass,
+					params: $params[$propertyName] ?? $params,
+					methodName: $methodName,
+					recursionContext: $recursionContext,
 				));
 				continue;
 			}
@@ -368,17 +368,17 @@ final class ServiceMethodInvoker
 			}
 
 			return $this->hydrateDataToObject(
-				$service,
-				$parameterType,
-				$params[$pName] ?? $params,
-				$methodName,
-				$recursionContext,
+				service: $service,
+				className: $parameterType,
+				params: $params[$pName] ?? $params,
+				methodName: $methodName,
+				recursionContext: $recursionContext,
 			);
 		}
 		try {
 			if (isset($params[$pName]) === true) {
 				$type = $parameter->getType();
-				if ($params[$pName]) {
+				if (((bool) $params[$pName]) === true) {
 					return $this->fixType(
 						$params[$pName],
 						$type,
@@ -432,7 +432,8 @@ final class ServiceMethodInvoker
 		};
 
 		try {
-			if (method_exists($instance, $setter = 'set' . $property->getName())) {
+			$setter = 'set' . $property->getName();
+			if (method_exists($instance, $setter)) {
 				$ref = new \ReflectionMethod($instance, $setter);
 				$param = $ref->getParameters()[0] ?? null;
 				if ($param === null) {
@@ -442,6 +443,7 @@ final class ServiceMethodInvoker
 					$setProperty($property, $instance, $value);
 				} elseif ($value === null) {
 					if ($type->allowsNull()) {
+						assert(is_callable($instance) === true);
 						$instance->$setter(null);
 					} else {
 						throw new \InvalidArgumentException('Value for setter "' . $setter . '" is required, but null given.');
@@ -458,10 +460,12 @@ final class ServiceMethodInvoker
 							),
 						);
 					} else {
+						assert(is_callable($instance) === true);
 						$instance->$setter($valueInstance);
 					}
 				} else { // scalar type or unknown
 					try {
+						assert(is_callable($instance) === true);
 						$instance->$setter($value);
 					} catch (\TypeError $e) {
 						trigger_error('Incompatible type: ' . $e->getMessage());
@@ -479,6 +483,7 @@ final class ServiceMethodInvoker
 	private function tryMakeEntityInstance(string $className, mixed $value): ?object
 	{
 		// 1. Native DateTime object
+		/** @phpstan-ignore-next-line */
 		if (isset((class_implements($className) ?: [])[\DateTimeInterface::class])) {
 			/** @phpstan-ignore-next-line */
 			return (new \ReflectionClass($className))->newInstance($value);
