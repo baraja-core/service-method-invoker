@@ -287,7 +287,9 @@ final class ServiceMethodInvoker
 				continue;
 			}
 			if (preg_match('/@var\s+(\S+)/', (string) $property->getDocComment(), $parser) === 1) {
-				$requiredType = isset($parser[1]) && $parser[1] !== '' ? $parser[1] : 'null';
+				$requiredType = isset($parser[1]) && $parser[1] !== ''
+					? $parser[1]
+					: 'null';
 			} else {
 				$requiredType = 'null';
 			}
@@ -443,7 +445,7 @@ final class ServiceMethodInvoker
 					$setProperty($property, $instance, $value);
 				} elseif ($value === null) {
 					if ($type->allowsNull()) {
-						assert(is_callable($instance) === true);
+						/** @phpstan-ignore-next-line */
 						$instance->$setter(null);
 					} else {
 						throw new \InvalidArgumentException('Value for setter "' . $setter . '" is required, but null given.');
@@ -460,12 +462,12 @@ final class ServiceMethodInvoker
 							),
 						);
 					} else {
-						assert(is_callable($instance) === true);
+						/** @phpstan-ignore-next-line */
 						$instance->$setter($valueInstance);
 					}
 				} else { // scalar type or unknown
 					try {
-						assert(is_callable($instance) === true);
+						/** @phpstan-ignore-next-line */
 						$instance->$setter($value);
 					} catch (\TypeError $e) {
 						trigger_error('Incompatible type: ' . $e->getMessage());

@@ -212,6 +212,7 @@ final class Helpers
 				case T_CLASS:
 				case T_INTERFACE:
 				case T_TRAIT:
+					/** @phpstan-ignore-next-line */
 					if ($name = self::fetch($tokens, T_STRING)) {
 						$class = $namespace . $name;
 						$classLevel = $level + 1;
@@ -223,28 +224,32 @@ final class Helpers
 					break;
 
 				case T_USE:
+					/** @phpstan-ignore-next-line */
 					while (!$class && ($name = self::fetch($tokens, $nameTokens))) {
 						$name = ltrim($name, '\\');
+						/** @phpstan-ignore-next-line */
 						if (self::fetch($tokens, '{')) {
 							while ($suffix = self::fetch($tokens, $nameTokens)) {
+								/** @phpstan-ignore-next-line */
 								if (self::fetch($tokens, T_AS)) {
 									$uses[self::fetch($tokens, T_STRING)] = $name . $suffix;
 								} else {
 									$tmp = explode('\\', $suffix);
 									$uses[end($tmp)] = $name . $suffix;
 								}
+								/** @phpstan-ignore-next-line */
 								if (!self::fetch($tokens, ',')) {
 									break;
 								}
 							}
-
+							/** @phpstan-ignore-next-line */
 						} elseif (self::fetch($tokens, T_AS)) {
 							$uses[self::fetch($tokens, T_STRING)] = $name;
-
 						} else {
 							$tmp = explode('\\', $name);
 							$uses[end($tmp)] = $name;
 						}
+						/** @phpstan-ignore-next-line */
 						if (!self::fetch($tokens, ',')) {
 							break;
 						}
