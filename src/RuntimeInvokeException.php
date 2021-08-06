@@ -24,7 +24,7 @@ final class RuntimeInvokeException extends \RuntimeException
 	}
 
 
-	public static function parameterDoesNotSet(object $service, string $parameter, int $position, string $method): void
+	public static function parameterDoesNotSet(object $service, string $parameter, int $position, string $method, ?string $initiator = null): void
 	{
 		$methodParams = '';
 		try { // Rewrite to real method name + try render method parameters.
@@ -41,7 +41,8 @@ final class RuntimeInvokeException extends \RuntimeException
 
 		throw new self(
 			$service,
-			Helpers::formatServiceName($service) . ': Parameter $' . $parameter . ' of method ' . $method
+			Helpers::formatServiceName($service) . ': Parameter $' . $parameter
+			. ($initiator !== null ? ' (declared on "' . $initiator . '")' : '') . ' of method ' . $method
 			. '(' . $methodParams . ') on position #' . $position . ' does not exist.',
 		);
 	}
