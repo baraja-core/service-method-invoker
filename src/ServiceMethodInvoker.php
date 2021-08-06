@@ -417,7 +417,14 @@ final class ServiceMethodInvoker
 			);
 		}
 
-		RuntimeInvokeException::parameterDoesNotSet($service, $parameter->getName(), $parameter->getPosition(), $methodName ?? '');
+		$initiator = $parameter->getDeclaringClass();
+		RuntimeInvokeException::parameterDoesNotSet(
+			service: $service,
+			parameter: $parameter->getName(),
+			position: $parameter->getPosition(),
+			method: $methodName ?? '',
+			initiator: $initiator === null ? null : $initiator->getName(),
+		);
 
 		return null;
 	}
