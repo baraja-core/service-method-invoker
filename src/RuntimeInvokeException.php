@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Baraja;
 
 
+use Baraja\ServiceMethodInvoker\Helpers;
+
 final class RuntimeInvokeException extends \RuntimeException
 {
 	private ?string $method = null;
@@ -14,7 +16,7 @@ final class RuntimeInvokeException extends \RuntimeException
 
 
 	public function __construct(
-		private ?Service $service,
+		private ?object $service,
 		string $message,
 		?\Throwable $previous = null
 	) {
@@ -22,8 +24,13 @@ final class RuntimeInvokeException extends \RuntimeException
 	}
 
 
-	public static function parameterDoesNotSet(Service $service, string $parameter, int $position, string $method): void
-	{
+	public static function parameterDoesNotSet(
+		object $service,
+		string $parameter,
+		int $position,
+		string $method,
+		?string $initiator = null
+	): void {
 		$methodParams = '';
 		try { // Rewrite to real method name + try render method parameters.
 			$ref = new \ReflectionMethod($service, $method);
@@ -39,14 +46,15 @@ final class RuntimeInvokeException extends \RuntimeException
 
 		throw new self(
 			$service,
-			$service . ': Parameter $' . $parameter . ' of method ' . $method . '(' . $methodParams . ') '
-			. 'on position #' . $position . ' does not exist.',
+			Helpers::formatServiceName($service) . ': Parameter $' . $parameter
+			. ($initiator !== null ? ' (declared on "' . $initiator . '")' : '') . ' of method ' . $method
+			. '(' . $methodParams . ') on position #' . $position . ' does not exist.',
 		);
 	}
 
 
 	public static function propertyIsRequired(
-		Service $service,
+		object $service,
 		string $entityName,
 		string $propertyName,
 		bool $allowsScalar,
@@ -54,13 +62,13 @@ final class RuntimeInvokeException extends \RuntimeException
 	): void {
 		throw new self(
 			$service,
-			$service . ': Property "' . $propertyName . '" of entity "' . $entityName . '" is required. '
+			Helpers::formatServiceName($service) . ': Property "' . $propertyName . '" of entity "' . $entityName . '" is required. '
 			. 'Please set some' . ($allowsScalar === true ? ' scalar' : '') . ' value type of "' . $requiredType . '".',
 		);
 	}
 
 
-	public function getService(): ?Service
+	public function getService(): ?object
 	{
 		return $this->service;
 	}

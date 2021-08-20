@@ -20,12 +20,22 @@ final class Helpers
 	}
 
 
+	public static function formatServiceName(object $service): string
+	{
+		return $service instanceof \Stringable
+			? (string) $service
+			: get_debug_type($service);
+	}
+
+
 	public static function resolvePropertyType(\ReflectionProperty $property): ?string
 	{
-		if ($classType = self::getPropertyType($property)) {
+		$classType = self::getPropertyType($property);
+		if ($classType !== null) {
 			return $classType;
 		}
-		if ($classType = self::parseAnnotation($property, 'var')) {
+		$classType = self::parseAnnotation($property, 'var');
+		if ($classType !== null) {
 			return self::expandClassName($classType, self::getPropertyDeclaringClass($property));
 		}
 
@@ -56,7 +66,8 @@ final class Helpers
 			throw new \RuntimeException('You have to enable phpDoc comments in opcode cache.');
 		}
 		$re = '#[\s*]@' . preg_quote($name, '#') . '(?=\s|$)(?:[ \t]+([^@\s]\S*))?#';
-		if ($ref->getDocComment() && preg_match($re, trim((string) $ref->getDocComment(), '/*'), $m)) {
+		$docComment = (string) $ref->getDocComment();
+		if ($docComment !== '' && preg_match($re, trim($docComment, '/*'), $m) === 1) {
 			return $m[1] ?? '';
 		}
 
@@ -105,7 +116,7 @@ final class Helpers
 		if (($lower = strtolower($type)) === 'self' || $lower === 'static') {
 			return $reflection->getDeclaringClass()->name;
 		}
-		if ($lower === 'parent' && $reflection->getDeclaringClass()->getParentClass()) {
+		if ($lower === 'parent' && $reflection->getDeclaringClass()->getParentClass() !== false) {
 			return $reflection->getDeclaringClass()->getParentClass()->name;
 		}
 
@@ -120,7 +131,7 @@ final class Helpers
 	private static function expandClassName(string $name, \ReflectionClass $context): string
 	{
 		$lower = strtolower($name);
-		if (empty($name)) {
+		if ($name === '') {
 			throw new \InvalidArgumentException('Class name must not be empty.');
 		}
 		if (isset(self::BUILTIN_TYPES[$lower])) {
@@ -181,7 +192,9 @@ final class Helpers
 			trigger_error($e->getMessage(), E_USER_NOTICE);
 			$tokens = [];
 		}
-		$namespace = $class = $classLevel = $level = null;
+		$level = 0;
+		$classLevel = 0;
+		$namespace = $class = null;
 		$res = $uses = [];
 
 		$nameTokens = PHP_VERSION_ID < 80_000
@@ -199,6 +212,7 @@ final class Helpers
 				case T_CLASS:
 				case T_INTERFACE:
 				case T_TRAIT:
+					/** @phpstan-ignore-next-line */
 					if ($name = self::fetch($tokens, T_STRING)) {
 						$class = $namespace . $name;
 						$classLevel = $level + 1;
@@ -210,28 +224,32 @@ final class Helpers
 					break;
 
 				case T_USE:
+					/** @phpstan-ignore-next-line */
 					while (!$class && ($name = self::fetch($tokens, $nameTokens))) {
 						$name = ltrim($name, '\\');
+						/** @phpstan-ignore-next-line */
 						if (self::fetch($tokens, '{')) {
 							while ($suffix = self::fetch($tokens, $nameTokens)) {
+								/** @phpstan-ignore-next-line */
 								if (self::fetch($tokens, T_AS)) {
 									$uses[self::fetch($tokens, T_STRING)] = $name . $suffix;
 								} else {
 									$tmp = explode('\\', $suffix);
 									$uses[end($tmp)] = $name . $suffix;
 								}
+								/** @phpstan-ignore-next-line */
 								if (!self::fetch($tokens, ',')) {
 									break;
 								}
 							}
-
+							/** @phpstan-ignore-next-line */
 						} elseif (self::fetch($tokens, T_AS)) {
 							$uses[self::fetch($tokens, T_STRING)] = $name;
-
 						} else {
 							$tmp = explode('\\', $name);
 							$uses[end($tmp)] = $name;
 						}
+						/** @phpstan-ignore-next-line */
 						if (!self::fetch($tokens, ',')) {
 							break;
 						}
@@ -246,7 +264,8 @@ final class Helpers
 
 				case '}':
 					if ($level === $classLevel) {
-						$class = $classLevel = null;
+						$classLevel = 0;
+						$class = null;
 					}
 					$level--;
 			}

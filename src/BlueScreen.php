@@ -33,10 +33,12 @@ final class BlueScreen
 
 			try {
 				$ref = new \ReflectionClass($service);
-				$file = $ref->getFileName() ?: null;
+				$refFileName = $ref->getFileName();
+				$file = $refFileName === false ? null : $refFileName;
 				if (($method = $e->getMethod()) !== null) {
 					$methodRef = $ref->getMethod($method);
-					$file = $methodRef->getFileName() ?: null;
+					$methodFileName = $methodRef->getFileName();
+					$file = $methodFileName === false ? null : $methodFileName;
 					$startLine = (int) $methodRef->getStartLine();
 				} else {
 					$startLine = (int) $ref->getStartLine();
@@ -44,11 +46,11 @@ final class BlueScreen
 			} catch (\ReflectionException) {
 				// Silence is golden.
 			}
-			if ($file !== null && $startLine !== null && \is_file((string) $file) === true) {
+			if ($file !== null && $startLine !== null && is_file($file) === true) {
 				return [
-					'tab' => 'Service Invoker | ' . htmlspecialchars((string) (\get_class($service ?? ''))),
+					'tab' => 'Service Invoker | ' . htmlspecialchars(get_class($service ?? '')),
 					'panel' => '<p>' . Helpers::editorLink($file, $startLine) . '</p>'
-						. \Tracy\BlueScreen::highlightPhp((string) file_get_contents((string) $file), $startLine)
+						. \Tracy\BlueScreen::highlightPhp((string) file_get_contents($file), $startLine)
 						. ($params !== null ? '<p>Params:</p>' . self::renderParamsTable($params) : ''),
 				];
 			}

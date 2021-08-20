@@ -1,7 +1,4 @@
 includes:
-	- vendor/phpstan/phpstan-nette/extension.neon
-	- vendor/phpstan/phpstan-nette/rules.neon
-	- vendor/spaze/phpstan-disallowed-calls/extension.neon
 	- vendor/spaze/phpstan-disallowed-calls/disallowed-dangerous-calls.neon
 	- vendor/spaze/phpstan-disallowed-calls/disallowed-execution-calls.neon
 
@@ -11,5 +8,4 @@ parameters:
 	ignoreErrors:
 		- '#Call to an undefined method ReflectionType::getName\(\).#'
 		- '#Cannot call method getParentClass\(\) on ReflectionClass\|null.#'
-		- '#Cannot access property \$name on ReflectionClass\|false.#'
 		- '#Cannot access property \$name on ReflectionClass\|null.#'
