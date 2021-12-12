@@ -42,7 +42,7 @@ final class ServiceMethodInvoker
 	 * Before given method is invoked, this internal logic check all input parameters and validate types.
 	 * In case of called method return void, invoke logic return null
 	 *
-	 * @param mixed[] $params
+	 * @param array<string, mixed> $params
 	 */
 	public function invoke(
 		object $service,
@@ -51,15 +51,18 @@ final class ServiceMethodInvoker
 		bool $dataMustBeArray = false
 	): mixed {
 		if (method_exists($service, $methodName) === false) {
-			throw new \InvalidArgumentException(
-				'Method "' . $methodName . '" in class "' . get_debug_type($service) . '" '
-				. 'does not exist or is not public and callable.',
-			);
+			throw new \InvalidArgumentException(sprintf(
+				'Method "%s" in class "%s" does not exist or is not public and callable.',
+				$methodName,
+				get_debug_type($service),
+			));
 		}
 		if (is_callable([$service, $methodName]) === false) {
-			throw new \InvalidArgumentException(
-				'Method "' . $methodName . '" in class "' . get_debug_type($service) . '" is not callable.',
-			);
+			throw new \InvalidArgumentException(sprintf(
+				'Method "%s" in class "%s" is not callable.',
+				$methodName,
+				get_debug_type($service),
+			));
 		}
 		try {
 			$ref = new \ReflectionMethod($service, $methodName);
@@ -73,7 +76,7 @@ final class ServiceMethodInvoker
 
 
 	/**
-	 * @param mixed[] $params
+	 * @param array<string, mixed> $params
 	 * @return array<string, mixed>
 	 */
 	public function getInvokeArgs(
@@ -83,15 +86,18 @@ final class ServiceMethodInvoker
 		bool $dataMustBeArray = false
 	): array {
 		if (method_exists($service, $methodName) === false) {
-			throw new \InvalidArgumentException(
-				'Method "' . $methodName . '" in class "' . get_debug_type($service) . '" '
-				. 'does not exist or is not public and callable.',
-			);
+			throw new \InvalidArgumentException(sprintf(
+				'Method "%s" in class "%s" does not exist or is not public and callable.',
+				$methodName,
+				get_debug_type($service),
+			));
 		}
 		if (is_callable([$service, $methodName]) === false) {
-			throw new \InvalidArgumentException(
-				'Method "' . $methodName . '" in class "' . get_debug_type($service) . '" is not callable.',
-			);
+			throw new \InvalidArgumentException(sprintf(
+				'Method "%s" in class "%s" is not callable.',
+				$methodName,
+				get_debug_type($service),
+			));
 		}
 		$args = [];
 		try {
@@ -117,19 +123,15 @@ final class ServiceMethodInvoker
 				foreach ($parameters as $parameter) {
 					$pName = $parameter->getName();
 					if ($dataMustBeArray === true && $pName === 'data') {
-						if (
-							(
-								($type = $parameter->getType()) !== null
-								&& ($typeName = $type->getName()) !== 'array'
-							)
-							|| $type === null
-						) {
+						$type = $parameter->getType();
+						$typeName = $type !== null ? $type->getName() : null;
+						if (($typeName !== null && $typeName !== 'array') || $type === null) {
 							throw new RuntimeInvokeException(
 								$service,
-								Helpers::formatServiceName($service) . ': Api parameter "data" must be type of "array". '
+								sprintf('%s: Api parameter "data" must be type of "array". ', Helpers::formatServiceName($service))
 								. ($type === null
 									? 'No type has been defined. Did you set PHP 7 strict data types?'
-									: 'Type "' . ($typeName ?? '') . '" given.'
+									: sprintf('Type "%s" given.', $typeName ?? '')
 								),
 							);
 						}
@@ -167,20 +169,21 @@ final class ServiceMethodInvoker
 		if (((bool) $haystack) === false && $type->allowsNull() === true) {
 			return null;
 		}
-		if ($type->getName() === 'bool') {
+		$typeName = $type->getName();
+		if ($typeName === 'bool') {
 			return \in_array(strtolower((string) $haystack), ['1', 'true', 'yes'], true) === true;
 		}
-		if ($haystack === 'null' && ($type->getName() === 'int' || $type->getName() === 'float')) {
+		if ($haystack === 'null' && ($typeName === 'int' || $typeName === 'float')) {
 			if ($allowsNull === false) {
 				throw new \LogicException('Parameter can not be nullable.');
 			}
 
 			return null;
 		}
-		if ($type->getName() === 'int') {
+		if ($typeName === 'int') {
 			return (int) $haystack;
 		}
-		if ($type->getName() === 'float') {
+		if ($typeName === 'float') {
 			return (float) $haystack;
 		}
 
@@ -191,8 +194,9 @@ final class ServiceMethodInvoker
 	private function returnEmptyValue(object $service, string $parameter, mixed $value, \ReflectionType $type): mixed
 	{
 		if ($type->allowsNull() === true) {
-			if (($value === '0' || $value === 0)) {
-				if (($typeName = $type->getName()) === 'bool') {
+			if ($value === '0' || $value === 0) {
+				$typeName = $type->getName();
+				if ($typeName === 'bool') {
 					return false;
 				}
 				if ($typeName === 'int' || $typeName === 'float') {
@@ -202,11 +206,16 @@ final class ServiceMethodInvoker
 
 			return null;
 		}
-		if (str_contains($name = $type->getName(), '/') || class_exists($name) === true) {
+		$name = $type->getName();
+		if (str_contains($name, '/') || class_exists($name) === true) {
 			throw new RuntimeInvokeException(
 				$service,
-				Helpers::formatServiceName($service) . ': Parameter "' . $parameter . '" must be a object '
-				. 'of type "' . $name . '", but empty value given.',
+				sprintf(
+					'%s: Parameter "%s" must be a object of type "%s", but empty value given.',
+					Helpers::formatServiceName($service),
+					$parameter,
+					$name,
+				),
 			);
 		}
 		if (isset(self::EMPTY_TYPE_MAPPER[$name]) === true) {
@@ -215,8 +224,12 @@ final class ServiceMethodInvoker
 
 		throw new RuntimeInvokeException(
 			$service,
-			Helpers::formatServiceName($service) . ': Can not create default empty value for parameter "' . $parameter . '"'
-			. ' type "' . $name . '" given.',
+			sprintf(
+				'%s: Can not create default empty value for parameter "%s" type "%s" given.',
+				Helpers::formatServiceName($service),
+				$parameter,
+				$name,
+			),
 		);
 	}
 
@@ -234,7 +247,7 @@ final class ServiceMethodInvoker
 		if (\class_exists($className) === false) {
 			throw new RuntimeInvokeException(
 				$service,
-				Helpers::formatServiceName($service) . ': Entity class "' . $className . '" does not exist.',
+				sprintf('%s: Entity class "%s" does not exist.', Helpers::formatServiceName($service), $className),
 			);
 		}
 		if (is_array($params) === false) {
@@ -246,8 +259,11 @@ final class ServiceMethodInvoker
 		if (isset($recursionContext[$className]) === true) {
 			throw new RuntimeInvokeException(
 				$service,
-				Helpers::formatServiceName($service) . ': Circular reference detected, '
-				. 'because the entity "' . $className . '" already has been instanced.'
+				sprintf(
+					'%s: Circular reference detected, because the entity "%s" already has been instanced.',
+					Helpers::formatServiceName($service),
+					$className,
+				)
 				. "\n" . 'Current stack trace: ' . implode(', ', array_keys($recursionContext)),
 			);
 		}
@@ -257,13 +273,14 @@ final class ServiceMethodInvoker
 			$ref = new \ReflectionClass($className);
 		} catch (\ReflectionException $e) {
 			throw new \RuntimeException(
-				'Can not create reflection class of "' . $className . '": ' . $e->getMessage(),
+				sprintf('Can not create reflection class of "%s": %s', $className, $e->getMessage()),
 				$e->getCode(),
 				$e,
 			);
 		}
 
-		if (($constructor = $ref->getConstructor()) !== null) {
+		$constructor = $ref->getConstructor();
+		if ($constructor !== null) {
 			$args = [];
 			foreach ($constructor->getParameters() as $parameter) {
 				$args[$parameter->getName()] = $this->processParameterValue($service, $parameter, $params, $methodName, $recursionContext);
@@ -276,10 +293,8 @@ final class ServiceMethodInvoker
 
 		foreach ($ref->getProperties() as $property) {
 			$property->setAccessible(true);
-			if (
-				isset($params[$propertyName = $property->getName()]) === true
-				&& is_scalar($params[$propertyName]) === true
-			) {
+			$propertyName = $property->getName();
+			if (isset($params[$propertyName]) === true && is_scalar($params[$propertyName]) === true) {
 				$this->hydrateValueToEntity($property, $instance, $params[$propertyName]);
 				continue;
 			}
@@ -310,8 +325,11 @@ final class ServiceMethodInvoker
 				} else {
 					throw new RuntimeInvokeException(
 						$service,
-						Helpers::formatServiceName($service) . ': Property type of "' . $type . '" is not supported. '
-						. 'Did you mean a scalar type or a entity?',
+						sprintf(
+							'%s: Property type of "%s" is not supported. Did you mean a scalar type or a entity?',
+							Helpers::formatServiceName($service),
+							$type,
+						),
 					);
 				}
 			}
@@ -334,7 +352,7 @@ final class ServiceMethodInvoker
 
 
 	/**
-	 * @param mixed[] $params
+	 * @param array<string, mixed> $params
 	 */
 	private function processParameterValue(
 		object $service,
@@ -344,10 +362,9 @@ final class ServiceMethodInvoker
 		array $recursionContext = []
 	): mixed {
 		$pName = $parameter->getName();
-		if (
-			($parameterType = ($type = $parameter->getType()) !== null ? $type->getName() : null) !== null
-			&& \class_exists($parameterType) === true
-		) {
+		$type = $parameter->getType();
+		$parameterType = $type !== null ? $type->getName() : null;
+		if ($parameterType !== null && \class_exists($parameterType) === true) {
 			if (array_key_exists($pName, $params) === true) {
 				if (($params[$pName] === 'null' || $params[$pName] === null) && $parameter->allowsNull() === true) {
 					return null;
@@ -356,13 +373,13 @@ final class ServiceMethodInvoker
 					return $params[$pName];
 				}
 				try {
-					if (($findInstance = $this->tryMakeEntityInstance($parameterType, $params[$pName])) !== null) {
+					$findInstance = $this->tryMakeEntityInstance($parameterType, $params[$pName]);
+					if ($findInstance !== null) {
 						return $findInstance;
 					}
 				} catch (\ReflectionException $e) {
 					throw new \RuntimeException(
-						'Parameter "' . $pName . '" type of "' . $parameterType . '" '
-						. 'can not be instanced: ' . $e->getMessage(),
+						sprintf('Parameter "%s" type of "%s" can not be instanced: %s', $pName, $parameterType, $e->getMessage()),
 						$e->getCode(),
 						$e,
 					);
@@ -448,23 +465,26 @@ final class ServiceMethodInvoker
 				if ($param === null) {
 					$setProperty($property, $instance, $value);
 				} elseif (($type = $param->getType()) === null) {
-					trigger_error('Parameter type of setter "' . $setter . '" is undefined.');
+					trigger_error(sprintf('Parameter type of setter "%s" is undefined.', $setter));
 					$setProperty($property, $instance, $value);
 				} elseif ($value === null) {
 					if ($type->allowsNull()) {
 						/** @phpstan-ignore-next-line */
 						$instance->$setter(null);
 					} else {
-						throw new \InvalidArgumentException('Value for setter "' . $setter . '" is required, but null given.');
+						throw new \InvalidArgumentException(sprintf('Value for setter "%s" is required, but null given.', $setter));
 					}
 				} elseif (class_exists($type->getName())) { // native object type or entity
 					$valueInstance = $this->tryMakeEntityInstance($type->getName(), $value);
 					if ($valueInstance === null) {
 						trigger_error(
-							'Mandatory value (type of "' . get_debug_type($value) . '") '
-							. 'for setter "' . $setter . '" can not be casted to "' . $type->getName() . '"'
-							. (class_exists('\Tracy\Dumper')
-								? ', because incompatible value "' . trim(\Tracy\Dumper::toText($value)) . '" given.'
+							sprintf(
+								'Mandatory value (type of "%s") for setter "%s" can not be casted to "%s"',
+								get_debug_type($value),
+								$setter,
+								$type->getName(),
+							) . (class_exists('\Tracy\Dumper')
+								? sprintf(', because incompatible value "%s" given.', trim(\Tracy\Dumper::toText($value)))
 								: '.'
 							),
 						);
