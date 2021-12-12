@@ -68,7 +68,7 @@ final class BlueScreen
 			if ($return instanceof RuntimeInvokeException) {
 				return $return;
 			}
-			$return = $return->getPrevious();
+			$return = $return !== null ? $return->getPrevious() : null;
 		} while ($return !== null);
 
 		return null;
