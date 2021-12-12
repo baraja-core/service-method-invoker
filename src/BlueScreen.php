@@ -14,7 +14,7 @@ final class BlueScreen
 	/** @throws \Error */
 	public function __construct()
 	{
-		throw new \Error('Class ' . static::class . ' is static and cannot be instantiated.');
+		throw new \Error(sprintf('Class "%s" is static and cannot be instantiated.', static::class));
 	}
 
 
@@ -23,10 +23,17 @@ final class BlueScreen
 	 */
 	public static function render(?\Throwable $e): ?array
 	{
-		if ($e !== null && !$e instanceof RuntimeInvokeException && ($previous = $e->getPrevious()) !== null) {
-			$e = $previous;
+		if ($e === null) {
+			return null;
 		}
-		if ($e instanceof RuntimeInvokeException && ($service = $e->getService()) !== null) {
+		$service = $e->getService();
+		if (!$e instanceof RuntimeInvokeException) {
+			$previous = $e->getPrevious();
+			if ($previous !== null) {
+				$e = $previous;
+			}
+		}
+		if ($e instanceof RuntimeInvokeException && $service !== null) {
 			$file = null;
 			$startLine = null;
 			$params = $e->getParams();
@@ -35,7 +42,8 @@ final class BlueScreen
 				$ref = new \ReflectionClass($service);
 				$refFileName = $ref->getFileName();
 				$file = $refFileName === false ? null : $refFileName;
-				if (($method = $e->getMethod()) !== null) {
+				$method = $e->getMethod();
+				if ($method !== null) {
 					$methodRef = $ref->getMethod($method);
 					$methodFileName = $methodRef->getFileName();
 					$file = $methodFileName === false ? null : $methodFileName;
@@ -49,7 +57,7 @@ final class BlueScreen
 			if ($file !== null && $startLine !== null && is_file($file) === true) {
 				return [
 					'tab' => 'Service Invoker | ' . htmlspecialchars(get_class($service ?? '')),
-					'panel' => '<p>' . Helpers::editorLink($file, $startLine) . '</p>'
+					'panel' => sprintf('<p>%s</p>', Helpers::editorLink($file, $startLine))
 						. \Tracy\BlueScreen::highlightPhp((string) file_get_contents($file), $startLine)
 						. ($params !== null ? '<p>Params:</p>' . self::renderParamsTable($params) : ''),
 				];
@@ -61,7 +69,7 @@ final class BlueScreen
 
 
 	/**
-	 * @param mixed[] $params
+	 * @param array<string, mixed> $params
 	 */
 	private static function renderParamsTable(array $params): string
 	{
@@ -72,8 +80,8 @@ final class BlueScreen
 		$return = '';
 		foreach ($params as $key => $value) {
 			$return .= '<tr>'
-				. '<th>$' . htmlspecialchars($key, ENT_IGNORE, 'UTF-8') . '</th>'
-				. '<td>' . Dumper::toHtml($value) . '</td>'
+				. sprintf('<th>$%s</th>', htmlspecialchars($key, ENT_IGNORE, 'UTF-8'))
+				. sprintf('<td>%s</td>', Dumper::toHtml($value))
 				. '</tr>';
 		}
 
