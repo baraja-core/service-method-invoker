@@ -23,46 +23,53 @@ final class BlueScreen
 	 */
 	public static function render(?\Throwable $e): ?array
 	{
-		if ($e === null) {
+		$invokeException = self::resolveRuntimeInvokeException($e);
+		$service = $invokeException !== null ? $invokeException->getService() : null;
+		if ($service === null) {
 			return null;
 		}
-		$service = $e->getService();
-		if (!$e instanceof RuntimeInvokeException) {
-			$previous = $e->getPrevious();
-			if ($previous !== null) {
-				$e = $previous;
-			}
-		}
-		if ($e instanceof RuntimeInvokeException && $service !== null) {
-			$file = null;
-			$startLine = null;
-			$params = $e->getParams();
+		$file = null;
+		$startLine = null;
+		$params = $invokeException->getParams();
 
-			try {
-				$ref = new \ReflectionClass($service);
-				$refFileName = $ref->getFileName();
-				$file = $refFileName === false ? null : $refFileName;
-				$method = $e->getMethod();
-				if ($method !== null) {
-					$methodRef = $ref->getMethod($method);
-					$methodFileName = $methodRef->getFileName();
-					$file = $methodFileName === false ? null : $methodFileName;
-					$startLine = (int) $methodRef->getStartLine();
-				} else {
-					$startLine = (int) $ref->getStartLine();
-				}
-			} catch (\ReflectionException) {
-				// Silence is golden.
+		try {
+			$ref = new \ReflectionClass($service);
+			$refFileName = $ref->getFileName();
+			$file = $refFileName === false ? null : $refFileName;
+			$method = $invokeException->getMethod();
+			if ($method !== null) {
+				$methodRef = $ref->getMethod($method);
+				$methodFileName = $methodRef->getFileName();
+				$file = $methodFileName === false ? null : $methodFileName;
+				$startLine = (int) $methodRef->getStartLine();
+			} else {
+				$startLine = (int) $ref->getStartLine();
 			}
-			if ($file !== null && $startLine !== null && is_file($file) === true) {
-				return [
-					'tab' => 'Service Invoker | ' . htmlspecialchars(get_class($service ?? '')),
-					'panel' => sprintf('<p>%s</p>', Helpers::editorLink($file, $startLine))
-						. \Tracy\BlueScreen::highlightPhp((string) file_get_contents($file), $startLine)
-						. ($params !== null ? '<p>Params:</p>' . self::renderParamsTable($params) : ''),
-				];
-			}
+		} catch (\ReflectionException) {
+			// Silence is golden.
 		}
+		if ($file !== null && $startLine !== null && is_file($file) === true) {
+			return [
+				'tab' => 'Service Invoker | ' . htmlspecialchars(get_class($service ?? '')),
+				'panel' => sprintf('<p>%s</p>', Helpers::editorLink($file, $startLine))
+					. \Tracy\BlueScreen::highlightPhp((string) file_get_contents($file), $startLine)
+					. ($params !== null ? '<p>Input params:</p>' . self::renderParamsTable($params) : ''),
+			];
+		}
+
+		return null;
+	}
+
+
+	private static function resolveRuntimeInvokeException(?\Throwable $exception): ?RuntimeInvokeException
+	{
+		$return = $exception;
+		do {
+			if ($return instanceof RuntimeInvokeException) {
+				return $return;
+			}
+			$return = $return->getPrevious();
+		} while ($return !== null);
 
 		return null;
 	}
