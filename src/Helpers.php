@@ -16,7 +16,7 @@ final class Helpers
 	/** @throws \Error */
 	public function __construct()
 	{
-		throw new \Error('Class ' . static::class . ' is static and cannot be instantiated.');
+		throw new \Error(sprintf('Class "%s" is static and cannot be instantiated.', static::class));
 	}
 
 
@@ -103,7 +103,7 @@ final class Helpers
 		try {
 			return $res ?? $res = (bool) (new \ReflectionMethod(__METHOD__))->getDocComment();
 		} catch (\ReflectionException $e) {
-			throw new \RuntimeException('Reflection is broken: ' . $e->getMessage(), $e->getCode(), $e);
+			throw new \RuntimeException('Reflection is broken: ' . $e->getMessage(), 500, $e);
 		}
 	}
 
@@ -113,7 +113,8 @@ final class Helpers
 	 */
 	private static function normalizeType(string $type, $reflection): string
 	{
-		if (($lower = strtolower($type)) === 'self' || $lower === 'static') {
+		$lower = strtolower($type);
+		if ($lower === 'self' || $lower === 'static') {
 			return $reflection->getDeclaringClass()->name;
 		}
 		if ($lower === 'parent' && $reflection->getDeclaringClass()->getParentClass() !== false) {

@@ -64,11 +64,7 @@ final class ServiceMethodInvoker
 				get_debug_type($service),
 			));
 		}
-		try {
-			$ref = new \ReflectionMethod($service, $methodName);
-		} catch (\ReflectionException $e) {
-			throw new \RuntimeException($e->getMessage(), $e->getCode(), $e);
-		}
+		$ref = new \ReflectionMethod($service, $methodName);
 		$args = $this->getInvokeArgs($service, $methodName, $params, $dataMustBeArray);
 
 		return $ref->invokeArgs($service, $args);
@@ -113,10 +109,14 @@ final class ServiceMethodInvoker
 				&& \class_exists($entityType) === true
 				&& is_subclass_of($entityType, \DateTimeInterface::class) === false
 			) { // entity input
+				$paramsValue = $params[$parameters[0]->getName()] ?? null;
+				if (!is_array($paramsValue) && !is_object($paramsValue)) {
+					$paramsValue = $params;
+				}
 				$args[$parameters[0]->getName()] = $this->hydrateDataToObject(
 					service: $service,
 					className: $entityType,
-					params: $params[$parameters[0]->getName()] ?? $params,
+					params: $paramsValue,
 					methodName: $methodName,
 				);
 			} else { // regular input by scalar parameters
@@ -146,7 +146,7 @@ final class ServiceMethodInvoker
 			$e->setParams($params);
 			throw $e;
 		} catch (\ReflectionException $e) {
-			throw new \RuntimeException($e->getMessage(), $e->getCode(), $e);
+			throw new \RuntimeException($e->getMessage(), 500, $e);
 		}
 
 		return $args;
@@ -171,7 +171,13 @@ final class ServiceMethodInvoker
 		}
 		$typeName = $type->getName();
 		if ($typeName === 'bool') {
-			return \in_array(strtolower((string) $haystack), ['1', 'true', 'yes'], true) === true;
+			return in_array(
+				is_scalar($haystack) || $haystack instanceof \Stringable
+					? strtolower((string) $haystack)
+					: '',
+				['1', 'true', 'yes'],
+				true,
+			);
 		}
 		if ($haystack === 'null' && ($typeName === 'int' || $typeName === 'float')) {
 			if ($allowsNull === false) {
@@ -181,9 +187,11 @@ final class ServiceMethodInvoker
 			return null;
 		}
 		if ($typeName === 'int') {
+			/** @phpstan-ignore-next-line */
 			return (int) $haystack;
 		}
 		if ($typeName === 'float') {
+			/** @phpstan-ignore-next-line */
 			return (float) $haystack;
 		}
 
@@ -235,12 +243,13 @@ final class ServiceMethodInvoker
 
 
 	/**
+	 * @param object|array<string, mixed> $params
 	 * @param array<string, bool> $recursionContext (entityName => true)
 	 */
 	private function hydrateDataToObject(
 		object $service,
 		string $className,
-		mixed $params,
+		object|array $params,
 		?string $methodName = null,
 		array $recursionContext = []
 	): object {
@@ -255,6 +264,7 @@ final class ServiceMethodInvoker
 			if ($valueInstance !== null) {
 				return $valueInstance;
 			}
+			throw new \LogicException('Can not convert object to entity.');
 		}
 		if (isset($recursionContext[$className]) === true) {
 			throw new RuntimeInvokeException(
@@ -268,17 +278,7 @@ final class ServiceMethodInvoker
 			);
 		}
 		$recursionContext[$className] = true;
-
-		try {
-			$ref = new \ReflectionClass($className);
-		} catch (\ReflectionException $e) {
-			throw new \RuntimeException(
-				sprintf('Can not create reflection class of "%s": %s', $className, $e->getMessage()),
-				$e->getCode(),
-				$e,
-			);
-		}
-
+		$ref = new \ReflectionClass($className);
 		$constructor = $ref->getConstructor();
 		if ($constructor !== null) {
 			$args = [];
@@ -334,17 +334,19 @@ final class ServiceMethodInvoker
 				}
 			}
 			if ($entityClass !== null) {
+				/** @var array<string, mixed> $entityClassParams */
+				$entityClassParams = $params[$propertyName] ?? $params;
 				$this->hydrateValueToEntity($property, $instance, $this->hydrateDataToObject(
 					service: $service,
 					className: $entityClass,
-					params: $params[$propertyName] ?? $params,
+					params: $entityClassParams,
 					methodName: $methodName,
 					recursionContext: $recursionContext,
 				));
 				continue;
 			}
 
-			RuntimeInvokeException::propertyIsRequired($service, $entityClass ?? $className, $propertyName, $allowsScalar, $requiredType);
+			RuntimeInvokeException::propertyIsRequired($service, $className, $propertyName, $allowsScalar, $requiredType);
 		}
 
 		return $instance;
@@ -380,7 +382,7 @@ final class ServiceMethodInvoker
 				} catch (\ReflectionException $e) {
 					throw new \RuntimeException(
 						sprintf('Parameter "%s" type of "%s" can not be instanced: %s', $pName, $parameterType, $e->getMessage()),
-						$e->getCode(),
+						500,
 						$e,
 					);
 				}
@@ -389,7 +391,7 @@ final class ServiceMethodInvoker
 			return $this->hydrateDataToObject(
 				service: $service,
 				className: $parameterType,
-				params: $params[$pName] ?? $params,
+				params: $params[$pName] ?? $params, /** @phpstan-ignore-line */
 				methodName: $methodName,
 				recursionContext: $recursionContext,
 			);
@@ -447,9 +449,9 @@ final class ServiceMethodInvoker
 	}
 
 
-	private function hydrateValueToEntity(\ReflectionProperty $property, mixed $instance, mixed $value): void
+	private function hydrateValueToEntity(\ReflectionProperty $property, object $instance, mixed $value): void
 	{
-		$setProperty = static function (\ReflectionProperty $property, mixed $instance, mixed $value): void {
+		$setProperty = static function (\ReflectionProperty $property, object $instance, mixed $value): void {
 			try {
 				$property->setValue($instance, $value);
 			} catch (\TypeError) {
@@ -504,7 +506,7 @@ final class ServiceMethodInvoker
 				$setProperty($property, $instance, $value);
 			}
 		} catch (\InvalidArgumentException $e) {
-			throw new \InvalidArgumentException('UserException: ' . $e->getMessage(), $e->getCode(), $e);
+			throw new \InvalidArgumentException('UserException: ' . $e->getMessage(), 500, $e);
 		}
 	}
 

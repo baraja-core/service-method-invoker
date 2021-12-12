@@ -28,6 +28,7 @@ final class BlueScreen
 		if ($service === null) {
 			return null;
 		}
+		assert($invokeException !== null);
 		$file = null;
 		$startLine = null;
 		$params = $invokeException->getParams();
@@ -50,7 +51,7 @@ final class BlueScreen
 		}
 		if ($file !== null && $startLine !== null && is_file($file) === true) {
 			return [
-				'tab' => 'Service Invoker | ' . htmlspecialchars(get_class($service ?? '')),
+				'tab' => 'Service Invoker | ' . htmlspecialchars(get_class($service)),
 				'panel' => sprintf('<p>%s</p>', Helpers::editorLink($file, $startLine))
 					. \Tracy\BlueScreen::highlightPhp((string) file_get_contents($file), $startLine)
 					. ($params !== null ? '<p>Input params:</p>' . self::renderParamsTable($params) : ''),
