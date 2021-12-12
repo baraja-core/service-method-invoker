@@ -19,7 +19,7 @@ final class BlueScreen
 
 
 	/**
-	 * @return string[]|null
+	 * @return array{tab: string, panel: string}|null
 	 */
 	public static function render(?\Throwable $e): ?array
 	{
