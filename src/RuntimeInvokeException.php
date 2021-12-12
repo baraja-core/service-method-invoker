@@ -18,7 +18,7 @@ final class RuntimeInvokeException extends \RuntimeException
 	public function __construct(
 		private ?object $service,
 		string $message,
-		?\Throwable $previous = null
+		?\Throwable $previous = null,
 	) {
 		parent::__construct($message, 500, $previous);
 	}
@@ -29,7 +29,7 @@ final class RuntimeInvokeException extends \RuntimeException
 		string $parameter,
 		int $position,
 		string $method,
-		?string $initiator = null
+		?string $initiator = null,
 	): void {
 		$methodParams = '';
 		try { // Rewrite to real method name + try render method parameters.
@@ -58,7 +58,7 @@ final class RuntimeInvokeException extends \RuntimeException
 		string $entityName,
 		string $propertyName,
 		bool $allowsScalar,
-		string $requiredType
+		string $requiredType,
 	): void {
 		throw new self(
 			$service,

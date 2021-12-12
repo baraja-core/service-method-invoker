@@ -24,7 +24,7 @@ final class ServiceMethodInvoker
 
 
 	public function __construct(
-		private ?ProjectEntityRepository $projectEntityRepository = null
+		private ?ProjectEntityRepository $projectEntityRepository = null,
 	) {
 		static $blueScreenRegistered = false;
 		if ($blueScreenRegistered === false && \class_exists(Debugger::class) === true) {
@@ -48,7 +48,7 @@ final class ServiceMethodInvoker
 		object $service,
 		string $methodName,
 		array $params,
-		bool $dataMustBeArray = false
+		bool $dataMustBeArray = false,
 	): mixed {
 		if (method_exists($service, $methodName) === false) {
 			throw new \InvalidArgumentException(sprintf(
@@ -79,7 +79,7 @@ final class ServiceMethodInvoker
 		object $service,
 		string $methodName,
 		array $params,
-		bool $dataMustBeArray = false
+		bool $dataMustBeArray = false,
 	): array {
 		if (method_exists($service, $methodName) === false) {
 			throw new \InvalidArgumentException(sprintf(
@@ -251,7 +251,7 @@ final class ServiceMethodInvoker
 		string $className,
 		object|array $params,
 		?string $methodName = null,
-		array $recursionContext = []
+		array $recursionContext = [],
 	): object {
 		if (\class_exists($className) === false) {
 			throw new RuntimeInvokeException(
@@ -361,7 +361,7 @@ final class ServiceMethodInvoker
 		\ReflectionParameter $parameter,
 		array $params,
 		?string $methodName = null,
-		array $recursionContext = []
+		array $recursionContext = [],
 	): mixed {
 		$pName = $parameter->getName();
 		$type = $parameter->getType();
