@@ -399,7 +399,7 @@ final class ServiceMethodInvoker
 		try {
 			if (isset($params[$pName]) === true) {
 				$type = $parameter->getType();
-				if (((bool) $params[$pName]) === true) {
+				if (((bool) $params[$pName]) === true || ($type !== null && $type->getName() === 'string')) {
 					return $this->fixType(
 						$params[$pName],
 						$type,
