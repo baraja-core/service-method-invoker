@@ -100,7 +100,7 @@ final class ServiceMethodInvoker
 			$parameters = (new \ReflectionMethod($service, $methodName))->getParameters();
 			if (isset($parameters[0]) === true) {
 				$type = $parameters[0]->getType();
-				$entityType = $type !== null ? $type->getName() : null;
+				$entityType = $type?->getName();
 			} else {
 				$entityType = null;
 			}
@@ -124,7 +124,7 @@ final class ServiceMethodInvoker
 					$pName = $parameter->getName();
 					if ($dataMustBeArray === true && $pName === 'data') {
 						$type = $parameter->getType();
-						$typeName = $type !== null ? $type->getName() : null;
+						$typeName = $type?->getName();
 						if (($typeName !== null && $typeName !== 'array') || $type === null) {
 							throw new RuntimeInvokeException(
 								$service,
@@ -215,7 +215,7 @@ final class ServiceMethodInvoker
 			return null;
 		}
 		$name = $type->getName();
-		if (str_contains($name, '/') || class_exists($name) === true) {
+		if (str_contains($name, '/') || class_exists($name)) {
 			throw new RuntimeInvokeException(
 				$service,
 				sprintf(
@@ -365,7 +365,10 @@ final class ServiceMethodInvoker
 	): mixed {
 		$pName = $parameter->getName();
 		$type = $parameter->getType();
-		$parameterType = $type !== null ? $type->getName() : null;
+		$parameterType = $type?->getName();
+		if ($parameterType !== null && is_subclass_of($parameterType, \UnitEnum::class)) {
+			return $this->processEnumValue($service, $pName, $params, $parameterType, $type);
+		}
 		if ($parameterType !== null && \class_exists($parameterType) === true) {
 			if (array_key_exists($pName, $params) === true) {
 				if (($params[$pName] === 'null' || $params[$pName] === null) && $parameter->allowsNull() === true) {
@@ -442,7 +445,7 @@ final class ServiceMethodInvoker
 			parameter: $parameter->getName(),
 			position: $parameter->getPosition(),
 			method: $methodName ?? '',
-			initiator: $initiator === null ? null : $initiator->getName(),
+			initiator: $initiator?->getName(),
 		);
 
 		return null;
@@ -526,5 +529,51 @@ final class ServiceMethodInvoker
 		}
 
 		return null;
+	}
+
+
+	/**
+	 * @param array<string, mixed> $params
+	 * @param class-string<\UnitEnum> $parameterType
+	 */
+	private function processEnumValue(object $service, string $pName, array $params, string $parameterType, \ReflectionType $type): \UnitEnum|null
+	{
+		$value = $params[$pName] ?? null;
+		if ($value === null && $type->allowsNull()) {
+			return null;
+		}
+		if (is_string($value) === false) {
+			throw new RuntimeInvokeException(
+				$service,
+				sprintf(
+					'%s: Enum parameter "%s" must be string, but "%s" given.',
+					Helpers::formatServiceName($service),
+					$pName,
+					get_debug_type($value),
+				),
+			);
+		}
+		$valueLower = mb_strtolower($value, 'UTF-8');
+		foreach ($parameterType::cases() as $case) {
+			if (mb_strtolower($case->value ?? $case->name, 'UTF-8') === $valueLower) {
+				return $case;
+			}
+		}
+		throw new RuntimeInvokeException(
+			$service,
+			sprintf(
+				'%s: Value "%s" is not possible option of enum "%s". Did you mean "%s"?',
+				Helpers::formatServiceName($service),
+				is_scalar($value) ? (string) $value : get_debug_type($value),
+				$parameterType,
+				implode(
+					'", "',
+					array_map(
+						static fn (\UnitEnum $case): string => (string) ($case->value ?? $case->name),
+						$parameterType::cases(),
+					),
+				),
+			),
+		);
 	}
 }
