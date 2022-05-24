@@ -366,7 +366,7 @@ final class ServiceMethodInvoker
 		$pName = $parameter->getName();
 		$type = $parameter->getType();
 		$parameterType = $type?->getName();
-		if ($parameterType !== null && is_subclass_of($parameterType, \UnitEnum::class)) {
+		if (is_string($parameterType) && is_subclass_of($parameterType, \UnitEnum::class)) {
 			return $this->processEnumValue($service, $pName, $params, $parameterType, $type);
 		}
 		if ($parameterType !== null && \class_exists($parameterType) === true) {
@@ -536,13 +536,18 @@ final class ServiceMethodInvoker
 	 * @param array<string, mixed> $params
 	 * @param class-string<\UnitEnum> $parameterType
 	 */
-	private function processEnumValue(object $service, string $pName, array $params, string $parameterType, \ReflectionType $type): \UnitEnum|null
-	{
+	private function processEnumValue(
+		object $service,
+		string $pName,
+		array $params,
+		string $parameterType,
+		\ReflectionType $type
+	): \UnitEnum|null {
 		$value = $params[$pName] ?? null;
 		if ($value === null && $type->allowsNull()) {
 			return null;
 		}
-		if (is_string($value) === false) {
+		if (is_string($value) === false && is_numeric($value) === false) {
 			throw new RuntimeInvokeException(
 				$service,
 				sprintf(
@@ -553,6 +558,7 @@ final class ServiceMethodInvoker
 				),
 			);
 		}
+		$value = (string) $value;
 		$valueLower = mb_strtolower($value, 'UTF-8');
 		foreach ($parameterType::cases() as $case) {
 			if (mb_strtolower($case->value ?? $case->name, 'UTF-8') === $valueLower) {
@@ -564,12 +570,12 @@ final class ServiceMethodInvoker
 			sprintf(
 				'%s: Value "%s" is not possible option of enum "%s". Did you mean "%s"?',
 				Helpers::formatServiceName($service),
-				is_scalar($value) ? (string) $value : get_debug_type($value),
+				$value,
 				$parameterType,
 				implode(
 					'", "',
 					array_map(
-						static fn (\UnitEnum $case): string => (string) ($case->value ?? $case->name),
+						static fn(\UnitEnum $case): string => (string) ($case->value ?? $case->name),
 						$parameterType::cases(),
 					),
 				),
