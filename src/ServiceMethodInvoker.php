@@ -366,7 +366,7 @@ final class ServiceMethodInvoker
 		$pName = $parameter->getName();
 		$type = $parameter->getType();
 		$parameterType = $type?->getName();
-		if (is_string($parameterType) && is_subclass_of($parameterType, \UnitEnum::class)) {
+		if ($type !== null && is_string($parameterType) && is_subclass_of($parameterType, \UnitEnum::class)) {
 			return $this->processEnumValue($service, $pName, $params, $parameterType, $type);
 		}
 		if ($parameterType !== null && \class_exists($parameterType) === true) {
