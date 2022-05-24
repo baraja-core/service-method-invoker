@@ -541,7 +541,7 @@ final class ServiceMethodInvoker
 		string $pName,
 		array $params,
 		string $parameterType,
-		\ReflectionType $type
+		\ReflectionType $type,
 	): \UnitEnum|null {
 		$value = $params[$pName] ?? null;
 		if ($value === null && $type->allowsNull()) {
